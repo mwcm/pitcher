@@ -1,6 +1,6 @@
-aeiou.js
-test.mp3
-aeiou.wav
+*.mp3
+*.ogg
+*.wav
 .DS_Store
 
 #

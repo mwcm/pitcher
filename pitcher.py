@@ -3,6 +3,8 @@ import librosa
 import numpy as np
 import soundfile as sf
 
+from pyrubberband import pyrb
+
 ST_POSITIVE = 1.02930223664
 ST_NEGATIVE = {-1: 1.05652677103003,
                -2: 1.1215356033380033,
@@ -21,55 +23,62 @@ TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
 # TODO
-# https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.pdf
-# To simulate aliasing accurately using a digital implemen-tation,  the  discrete-time  signal  is  ideally  interpolated  tothe  time-grid  corresponding  to  the  sampling  rate  of  theSP-12.Methods to approximate the ideal interpolation includeusing a variable delay filter [2], or resampling[5] to a mul-tiple of the SP-12’s sampling rate and then downsamplingto the SP-12 rate.
+# http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
+# The sample input goes via an anti-aliasing filter to remove unwanted frequencies that are above half the sample frequency, the cutoff is brick walled at 42dB.
 
 
 # TODO: pitching up works, but 0 st outputs lower pitched file
 # TODO: librosa resamples on load, what was the JS behaviour?
 
 
-def manual_pitch(y):
-    return
+def manual_pitch(y, st):
+
+    if (0 > st >= -8):
+        t = ST_NEGATIVE[st]
+    elif (st >= 0):
+        t = ST_POSITIVE ** -st
+    else:
+        raise Exception('invalid semitone count')
+
+    n = int(np.round(len(y) * t))
+    r = np.linspace(0, len(y), n)
+    new = np.zeros(n, dtype=np.float32)
+
+    for e in range(int(n) - 1):
+        new[e] = y[int(np.round(r[e]))]
+
+    return new
 
 
+def pyrb_pitch(y, st):
+    return pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
+
+
+# seems to mess up when pitching up bass notes, higher notes don't come
+# through like they do with pyrb
 def auto_pitch(y, st):
-    pitched = librosa.effects.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
-    return pitched
+    return librosa.effects.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
 
 
 def time_shift(y, st):
-    pitched = librosa.effects.time_stretch(y, TARGET_SAMPLE_RATE, n_steps=st)
-    return pitched
+    return librosa.effects.time_stretch(y, TARGET_SAMPLE_RATE, n_steps=st)
 
 
 @click.command()
 @click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
 def pitch(file, st):
-    # if (0 > st >= -8):
-    #     t = ST_NEGATIVE[st]
-    # elif (st >= 0):
-    #     t = ST_POSITIVE ** -st
-    # else:
-    #     raise Exception('invalid semitone count')
 
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
     # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
-    # "resample to a multiple of the SP-1200's sampling rate"
+    # "...resample to a multiple of the SP-12(00)'s sampling rate..."
     y = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
 
-    # "then downsample"
+    # "...then downsample to the SP-12(00) rate"
     y = librosa.core.resample(y, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
 
-    # n = int(np.round(len(y) * t))
-    # r = np.linspace(0, len(y), n)
-    # new = np.zeros(n, dtype=np.float32)
-    #
-    # for e in range(int(n) - 1):
-    #     new[e] = y[int(np.round(r[e]))]
-    new = auto_pitch(y, st)
+    new = manual_pitch(y, st)
 
     sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
 
