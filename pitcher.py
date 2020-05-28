@@ -18,7 +18,6 @@ TARGET_SAMPLE_RATE = 26040
 
 # TODO: negative semitone values not working
 # TODO: librosa resamples on load, what was the JS behaviour?
-# TODO: why is the end of output files inconsistent? looping wrong?
 
 
 @click.command()
@@ -34,13 +33,15 @@ def pitch(file, st):
 
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    n = np.round(len(y) * t)
-    r = np.linspace(0, len(y), int(n))
+    n = int(np.round(len(y) * t))
+    r = np.linspace(0, len(y), n)
+    new = np.zeros(n, dtype=np.float32)
 
-    for e in range(0, int(n) - 1):
-        y[int(e)] = y[np.round(int(r[int(e)]))]
+    for e in range(int(n) - 1):
+        e = int(e)
+        new[e] = y[int(np.round(r[e]))]
 
-    sf.write('./aeiou.wav', y, TARGET_SAMPLE_RATE, format='wav')
+    sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
 
 
 if __name__ == '__main__':
