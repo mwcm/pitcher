@@ -16,7 +16,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
 INPUT_SAMPLE_RATE = 44100
 TARGET_SAMPLE_RATE = 26040
 
-# TODO: pitching up broken
+# TODO: pitching up works, but 0 st outputs lower pitched file
 # TODO: librosa resamples on load, what was the JS behaviour?
 
 
@@ -26,7 +26,7 @@ TARGET_SAMPLE_RATE = 26040
 def pitch(file, st):
     if (0 > st >= -8):
         t = ST_NEGATIVE[st]
-    elif (st > 0):
+    elif (st >= 0):
         t = ST_POSITIVE ** -st
     else:
         raise Exception('invalid semitone count')
