@@ -24,21 +24,24 @@ TARGET_SAMPLE_RATE = 26040
 @click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
 def pitch(file, st):
-    if (0 > st >= -8):
-        t = ST_NEGATIVE[st]
-    elif (st >= 0):
-        t = ST_POSITIVE ** -st
-    else:
-        raise Exception('invalid semitone count')
+    # if (0 > st >= -8):
+    #     t = ST_NEGATIVE[st]
+    # elif (st >= 0):
+    #     t = ST_POSITIVE ** -st
+    # else:
+    #     raise Exception('invalid semitone count')
 
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    n = int(np.round(len(y) * t))
-    r = np.linspace(0, len(y), n)
-    new = np.zeros(n, dtype=np.float32)
+    y = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE)
 
-    for e in range(int(n) - 1):
-        new[e] = y[int(np.round(r[e]))]
+    new = librosa.effects.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
+    # n = int(np.round(len(y) * t))
+    # r = np.linspace(0, len(y), n)
+    # new = np.zeros(n, dtype=np.float32)
+    #
+    # for e in range(int(n) - 1):
+    #     new[e] = y[int(np.round(r[e]))]
 
     sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
 
