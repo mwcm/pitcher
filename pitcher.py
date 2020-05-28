@@ -14,12 +14,11 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -8: 1.5766735700797954}
 
 INPUT_SAMPLE_RATE = 44100
+
+RESAMPLE_FACTOR = 8
+
 TARGET_SAMPLE_RATE = 26040
-
-# TODO
-# http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
-# The sample input goes via an anti-aliasing filter to remove unwanted frequencies that are above half the sample frequency, the cutoff is brick walled at 42dB.
-
+TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
 # TODO
 # https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.pdf
@@ -30,14 +29,16 @@ TARGET_SAMPLE_RATE = 26040
 # TODO: librosa resamples on load, what was the JS behaviour?
 
 
-
 def manual_pitch(y):
+    return
 
-def auto_pitch(y)
+
+def auto_pitch(y, st):
     pitched = librosa.effects.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
     return pitched
 
-def time_shift(y):
+
+def time_shift(y, st):
     pitched = librosa.effects.time_stretch(y, TARGET_SAMPLE_RATE, n_steps=st)
     return pitched
 
@@ -55,7 +56,12 @@ def pitch(file, st):
 
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    y = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE)
+    # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
+    # "resample to a multiple of the SP-1200's sampling rate"
+    y = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
+
+    # "then downsample"
+    y = librosa.core.resample(y, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
 
     # n = int(np.round(len(y) * t))
     # r = np.linspace(0, len(y), n)
@@ -63,6 +69,7 @@ def pitch(file, st):
     #
     # for e in range(int(n) - 1):
     #     new[e] = y[int(np.round(r[e]))]
+    new = auto_pitch(y, st)
 
     sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
 
