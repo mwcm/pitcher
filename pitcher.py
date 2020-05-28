@@ -23,7 +23,7 @@ RESAMPLE_FACTOR = 2
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
-PITCH_METHODS = ['manual', 'pvrb']
+PITCH_METHODS = ['manual', 'rubberband']
 
 # TODO
 # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
@@ -55,7 +55,9 @@ def manual_pitch(y, st):
 
 
 def pyrb_pitch(y, st):
-    return pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
+    t = ST_POSITIVE ** st
+    pitched = pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
+    return librosa.effects.time_stretch(pitched, t)
 
 
 @click.command()
