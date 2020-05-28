@@ -16,7 +16,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
 INPUT_SAMPLE_RATE = 44100
 TARGET_SAMPLE_RATE = 26040
 
-# TODO: negative semitone values not working
+# TODO: pitching up broken
 # TODO: librosa resamples on load, what was the JS behaviour?
 
 
