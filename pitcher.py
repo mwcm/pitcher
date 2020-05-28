@@ -15,9 +15,10 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-INPUT_SAMPLE_RATE = 44100
+# INPUT_SAMPLE_RATE = 44100
+INPUT_SAMPLE_RATE = 96000
 
-RESAMPLE_FACTOR = 8
+RESAMPLE_FACTOR = 2
 
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
@@ -27,10 +28,11 @@ TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 # The sample input goes via an anti-aliasing filter to remove unwanted frequencies that are above half the sample frequency, the cutoff is brick walled at 42dB.
 
 
-# TODO: pitching up works, but 0 st outputs lower pitched file
-# TODO: librosa resamples on load, what was the JS behaviour?
+# TODO: librosa resamples on load, what was the original order
+#       of resampling/pitching?
 
 
+# TODO: allow for lower than -8 st
 def manual_pitch(y, st):
 
     if (0 > st >= -8):
