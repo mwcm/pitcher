@@ -17,6 +17,8 @@ INPUT_SAMPLE_RATE = 44100
 TARGET_SAMPLE_RATE = 26040
 
 # TODO: negative semitone values not working
+# TODO: librosa resamples on load, what was the JS behaviour?
+
 
 @click.command()
 @click.option('--file', required=True)
