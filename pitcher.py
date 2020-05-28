@@ -23,6 +23,8 @@ RESAMPLE_FACTOR = 2
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
+PITCH_METHODS = ['manual', 'pvrb']
+
 # TODO
 # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
 # The sample input goes via an anti-aliasing filter to remove unwanted frequencies that are above half the sample frequency, the cutoff is brick walled at 42dB.
@@ -40,29 +42,16 @@ def manual_pitch(y, st):
     elif (st >= 0):
         t = ST_POSITIVE ** -st
     else:
-        raise Exception('invalid semitone count')
+        raise ValueError('invalid semitone count, should be 0 > st > -8')
 
     n = int(np.round(len(y) * t))
     r = np.linspace(0, len(y), n)
     new = np.zeros(n, dtype=np.float32)
 
-    for e in range(int(n) - 1):
+    for e in range(n - 1):
         new[e] = y[int(np.round(r[e]))]
 
     return new
-
-
-# TODO: allow for lower than -8 st
-def time_shift(y, st):
-
-    if (0 > st >= -8):
-        t = ST_NEGATIVE[st]
-    elif (st >= 0):
-        t = ST_POSITIVE ** st
-    else:
-        raise Exception('invalid semitone count')
-
-    return librosa.effects.time_stretch(y, t)
 
 
 def pyrb_pitch(y, st):
@@ -72,7 +61,8 @@ def pyrb_pitch(y, st):
 @click.command()
 @click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
-def pitch(file, st):
+@click.option('--method', default='manual_pitch')
+def pitch(file, st, method):
 
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
@@ -83,7 +73,13 @@ def pitch(file, st):
     # "...then downsample to the SP-12(00) rate"
     y = librosa.core.resample(y, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
 
-    new = time_shift(y, st)
+    if method in PITCH_METHODS:
+        if method == PITCH_METHODS[0]:
+            new = manual_pitch(y, st)
+        elif method == PITCH_METHODS[1]:
+            new = pyrb_pitch(y, st)
+    else:
+        raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
     sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
 
