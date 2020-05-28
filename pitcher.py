@@ -52,18 +52,21 @@ def manual_pitch(y, st):
     return new
 
 
+# TODO: allow for lower than -8 st
+def time_shift(y, st):
+
+    if (0 > st >= -8):
+        t = ST_NEGATIVE[st]
+    elif (st >= 0):
+        t = ST_POSITIVE ** st
+    else:
+        raise Exception('invalid semitone count')
+
+    return librosa.effects.time_stretch(y, t)
+
+
 def pyrb_pitch(y, st):
     return pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
-
-
-# seems to mess up when pitching up bass notes, higher notes don't come
-# through like they do with pyrb
-def auto_pitch(y, st):
-    return librosa.effects.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
-
-
-def time_shift(y, st):
-    return librosa.effects.time_stretch(y, TARGET_SAMPLE_RATE, n_steps=st)
 
 
 @click.command()
@@ -80,7 +83,7 @@ def pitch(file, st):
     # "...then downsample to the SP-12(00) rate"
     y = librosa.core.resample(y, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
 
-    new = manual_pitch(y, st)
+    new = time_shift(y, st)
 
     sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
 
