@@ -38,7 +38,6 @@ def pitch(file, st):
     new = np.zeros(n, dtype=np.float32)
 
     for e in range(int(n) - 1):
-        e = int(e)
         new[e] = y[int(np.round(r[e]))]
 
     sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
