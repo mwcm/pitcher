@@ -76,8 +76,9 @@ def librosa_resample(y):
 
 
 def scipy_resample(y):
-     #y = sp.signal.decimate(y)
-    return
+    resampled = sp.resample(y, TARGET_SAMPLE_RATE_MULTIPLE)
+    decimated = sp.signal.decimate(resampled, 8)
+    return decimated
 
 
 @click.command()
@@ -85,22 +86,22 @@ def scipy_resample(y):
 @click.option('--st', default=0, help='number of semitones to shift')
 @click.option('--pitch_method', default='manual_pitch')
 @click.option('--resample_method', default='librosa')
-def pitch(file, st, method, resample_method):
+def pitch(file, st, pitch_method, resample_method):
 
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
     if resample_method in RESAMPLE_METHODS:
-        if method == RESAMPLE_METHODS[0]:
-            new = librosa_resample(y)
-        elif method == RESAMPLE_METHODS[1]:
-            new = scipy_resample(y)
+        if pitch_method == RESAMPLE_METHODS[0]:
+            y = librosa_resample(y)
+        elif pitch_method == RESAMPLE_METHODS[1]:
+            y = scipy_resample(y)
     else:
         raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
 
-    if method in PITCH_METHODS:
-        if method == PITCH_METHODS[0]:
+    if pitch_method in PITCH_METHODS:
+        if pitch_method == PITCH_METHODS[0]:
             new = manual_pitch(y, st)
-        elif method == PITCH_METHODS[1]:
+        elif pitch_method == PITCH_METHODS[1]:
             new = pyrb_pitch(y, st)
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
