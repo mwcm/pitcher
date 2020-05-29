@@ -17,6 +17,13 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
+QUANTIZATION_BITS = 12
+QUANTIZATION_LEVELS = 2**QUANTIZATION_BITS
+U = 1  # max. Amplitude to be quantized
+DELTA_S = 2*U/QUANTIZATION_LEVELS  # level distance
+
+S_MIDRISE = -U + DELTA_S/2 + np.arange(QUANTIZATION_LEVELS)*DELTA_S
+S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS)*DELTA_S
 
 OUTPUT_FILE_NAME = 'aeiou.wav'
 INPUT_SAMPLE_RATE = 96000
@@ -32,7 +39,6 @@ PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
-
 # http://mural.maynoothuniversity.ie/4115/1/40.pdf
 
 # signal path: input filter > sample & hold > 12 bit quantizer > pitching
@@ -104,8 +110,19 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
+# TODO: this is so slow
+def quantize(x, S):
+    # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
+    X = x.reshape((-1, 1))
+    S = S.reshape((1, -1))
+    dists = abs(X-S)
+
+    nearestIndex = dists.argmin(axis=1)
+    quantized = S.flat[nearestIndex]
+    return quantized
+
+
 def bit_reduction(resampled):
-    # TODO: should also try to simulate the quantization of ADC
     t = sox.Transformer()  # Transformer has dither=False by default which is good
     t.vol(0.0625)  # 4096 / 65,536 https://en.wikipedia.org/wiki/Audio_bit_depth
     t.norm()   # TODO: not sure if this should be done here or later/last, test properly
@@ -119,8 +136,6 @@ def bit_reduction(resampled):
 # The sample input goes via an anti-aliasing filter to remove unwanted
 # frequencies that are above half the sample frequency,
 # the cutoff is brick walled at 42dB.
-
-
 @click.command()
 @click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
@@ -145,7 +160,8 @@ def pitch(file, st, pitch_method, resample_method):
         raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
 
     # simulate 12 bit adc conversion
-    bit_reduced = bit_reduction(resampled)
+    # bit_reduced = bit_reduction(resampled)
+    bit_reduced = quantize(resampled, S_MIDTREAD)
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
