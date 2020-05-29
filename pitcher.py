@@ -60,7 +60,7 @@ def manual_pitch(y, st):
 
 
 def pyrb_pitch(y, st):
-    t = ST_POSITIVE ** st
+    t = ST_POSITIVE ** st  # close enough to og vals? maybe revisit
     pitched = pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
     return librosa.effects.time_stretch(pitched, t)
 
@@ -77,7 +77,7 @@ def librosa_resample(y):
 
 def scipy_resample(y):
     resampled = sp.resample(y, TARGET_SAMPLE_RATE_MULTIPLE)
-    decimated = sp.signal.decimate(resampled, 8)
+    decimated = sp.signal.decimate(resampled, 8, 11)
     return decimated
 
 
