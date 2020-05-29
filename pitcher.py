@@ -34,18 +34,6 @@ PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
 
-def signaltonoise(a, axis=0, ddof=0):
-    a = np.asanyarray(a)
-    m = a.mean(axis)
-    sd = a.std(axis=axis, ddof=ddof)
-    return np.where(sd == 0, 0, m/sd)
-
-# TODO: 12 bit
-# https://en.wikipedia.org/wiki/Audio_bit_depth
-# a way to simulate this could be to reduce the signal to noise ratio
-# ie from 16 bits to 12 by scaling the volume by 0.0625 then normalize
-# - avoid dithering in either operation
-
 # http://mural.maynoothuniversity.ie/4115/1/40.pdf
 
 # signal path: input filter > sample & hold > 12 bit quantizer > pitching > zero order
@@ -118,9 +106,11 @@ def zero_order_hold(y):
 
 
 def bit_reduction(resampled):
-    t = sox.Transformer()
+    t = sox.Transformer()  # Transformer has dither=False by default which is good
     t.vol(0.0625)  # 4096 / 65,536 https://en.wikipedia.org/wiki/Audio_bit_depth
-    t.norm()
+
+    t.norm()   # TODO: not sure if this should be done here or later
+
     status, y_out, err = t.build(input_array=resampled, sample_rate_in=TARGET_SAMPLE_RATE)
     return y_out
 
