@@ -101,6 +101,7 @@ def pitch(file, st, pitch_method, resample_method):
     # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
     # then anti alias w/ order 11
 
+    # resample #2 & #3
     if resample_method in RESAMPLE_METHODS:
         if resample_method == RESAMPLE_METHODS[0]:
             resampled = librosa_resample(y)
@@ -117,7 +118,9 @@ def pitch(file, st, pitch_method, resample_method):
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
-    sf.write('./aeiou.wav', pitched, TARGET_SAMPLE_RATE, format='WAV')
+    # resample #4
+    output = librosa.core.resample(pitched, TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
+    sf.write('./aeiou.wav', output, OUTPUT_SAMPLE_RATE, format='WAV')
 
 
 if __name__ == '__main__':
