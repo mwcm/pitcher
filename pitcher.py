@@ -6,7 +6,6 @@ import scipy as sp
 import soundfile as sf
 
 from pyrubberband import pyrb
-import matplotlib.pyplot as plt
 
 ST_POSITIVE = 1.02930223664
 ST_NEGATIVE = {-1: 1.05652677103003,
@@ -158,27 +157,6 @@ def pitch(file, st, pitch_method, resample_method):
 
     # change to 12 bit
     bit_reduced = bit_reduction(resampled)
-
-    # sf.write(OUTPUT_FILE_NAME, bit_reduced, TARGET_SAMPLE_RATE,
-    #          format='WAV', subtype='PCM_16')
-    # 
-    # reduced_file = sp.io.wavfile.read(OUTPUT_FILE_NAME)
-    # audio = reduced_file[1]
-    # plt.plot(audio)
-    # plt.ylabel('Amplitude')
-    # plt.xlabel('Time')
-    # plt.title('bit reduced wav')
-    # plt.show()
-    # 
-    # reduced_file = sp.io.wavfile.read('./test2.wav')
-    # audio = reduced_file[1]
-    # plt.plot(audio)
-    # plt.ylabel('Amplitude')
-    # plt.xlabel('Time')
-    # plt.title('og file')
-    # plt.show()
-    # 
-    # raise SystemExit
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
