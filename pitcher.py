@@ -1,9 +1,12 @@
 import click
 import librosa
 import numpy as np
+import scipy as sp
 import soundfile as sf
 
+
 from pyrubberband import pyrb
+
 
 ST_POSITIVE = 1.02930223664
 ST_NEGATIVE = {-1: 1.05652677103003,
@@ -16,6 +19,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -8: 1.5766735700797954}
 
 # INPUT_SAMPLE_RATE = 44100
+NORMALIZED_DB = [-32, -18]
 INPUT_SAMPLE_RATE = 96000
 
 RESAMPLE_FACTOR = 2
@@ -24,6 +28,7 @@ TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
 PITCH_METHODS = ['manual', 'rubberband']
+RESAMPLE_METHODS = ['librosa', 'scipy']
 
 # TODO
 # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
@@ -32,6 +37,24 @@ PITCH_METHODS = ['manual', 'rubberband']
 
 # TODO: librosa resamples on load, what was the original order
 #       of resampling/pitching?
+
+# https://stackoverflow.com/questions/33720395/can-pydub-set-the-maximum-minimum-volume
+def match_target_amplitude(sound, target_dBFS):
+    change_in_dBFS = target_dBFS - sound.dBFS
+    return sound.apply_gain(change_in_dBFS)
+
+
+def sound_slice_normalize(sound, sample_rate, target_dBFS):
+    def max_min_volume(min, max):
+        for chunk in make_chunks(sound, sample_rate):
+            if chunk.dBFS < min:
+                yield match_target_amplitude(chunk, min)
+            elif chunk.dBFS > max:
+                yield match_target_amplitude(chunk, max)
+            else:
+                yield chunk
+
+    return reduce(lambda x, y: x + y, max_min_volume(target_dBFS[0], target_dBFS[1]))
 
 
 # TODO: allow for lower than -8 st
@@ -60,20 +83,37 @@ def pyrb_pitch(y, st):
     return librosa.effects.time_stretch(pitched, t)
 
 
-@click.command()
-@click.option('--file', required=True)
-@click.option('--st', default=0, help='number of semitones to shift')
-@click.option('--method', default='manual_pitch')
-def pitch(file, st, method):
-
-    y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
-
+def librosa_resample(y):
     # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
     # "...resample to a multiple of the SP-12(00)'s sampling rate..."
     y = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
 
     # "...then downsample to the SP-12(00) rate"
     y = librosa.core.resample(y, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
+    return y
+
+
+def scipy_resample(y):
+     #y = sp.signal.decimate(y)
+    return
+
+
+@click.command()
+@click.option('--file', required=True)
+@click.option('--st', default=0, help='number of semitones to shift')
+@click.option('--pitch_method', default='manual_pitch')
+@click.option('--resample_method', default='librosa')
+def pitch(file, st, method, resample_method):
+
+    y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
+
+    if resample_method in RESAMPLE_METHODS:
+        if method == RESAMPLE_METHODS[0]:
+            new = librosa_resample(y)
+        elif method == RESAMPLE_METHODS[1]:
+            new = scipy_resample(y)
+    else:
+        raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
 
     if method in PITCH_METHODS:
         if method == PITCH_METHODS[0]:
@@ -83,7 +123,8 @@ def pitch(file, st, method):
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
-    sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='wav')
+    # sf._subtypes['PCM_12'] = 0x0008
+    sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='WAV')
 
 
 if __name__ == '__main__':
