@@ -38,24 +38,6 @@ RESAMPLE_METHODS = ['librosa', 'scipy']
 # TODO: librosa resamples on load, what was the original order
 #       of resampling/pitching?
 
-# https://stackoverflow.com/questions/33720395/can-pydub-set-the-maximum-minimum-volume
-def match_target_amplitude(sound, target_dBFS):
-    change_in_dBFS = target_dBFS - sound.dBFS
-    return sound.apply_gain(change_in_dBFS)
-
-
-def sound_slice_normalize(sound, sample_rate, target_dBFS):
-    def max_min_volume(min, max):
-        for chunk in make_chunks(sound, sample_rate):
-            if chunk.dBFS < min:
-                yield match_target_amplitude(chunk, min)
-            elif chunk.dBFS > max:
-                yield match_target_amplitude(chunk, max)
-            else:
-                yield chunk
-
-    return reduce(lambda x, y: x + y, max_min_volume(target_dBFS[0], target_dBFS[1]))
-
 
 # TODO: allow for lower than -8 st
 def manual_pitch(y, st):
