@@ -19,8 +19,6 @@ ST_NEGATIVE = {-1: 1.05652677103003,
 
 
 OUTPUT_FILE_NAME = 'aeiou.wav'
-# INPUT_SAMPLE_RATE = 44100
-NORMALIZED_DB = [-32, -18]
 INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
 
@@ -106,10 +104,10 @@ def zero_order_hold(y):
 
 
 def bit_reduction(resampled):
+    # TODO: should also try to simulate the quantization of ADC
     t = sox.Transformer()  # Transformer has dither=False by default which is good
     t.vol(0.0625)  # 4096 / 65,536 https://en.wikipedia.org/wiki/Audio_bit_depth
-
-    t.norm()   # TODO: not sure if this should be done here or later
+    t.norm()   # TODO: not sure if this should be done here or later/last, test properly
 
     status, y_out, err = t.build(input_array=resampled, sample_rate_in=TARGET_SAMPLE_RATE)
     return y_out
@@ -129,7 +127,7 @@ def bit_reduction(resampled):
 @click.option('--resample_method', default='librosa')
 def pitch(file, st, pitch_method, resample_method):
 
-    # resample #1
+    # resample #1, purposefully oversample to 96khz
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
     # TODO: input anti alias filter here fig 2 in sp-12 paper or sp-1200's above
@@ -145,7 +143,7 @@ def pitch(file, st, pitch_method, resample_method):
     else:
         raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
 
-    # change to 12 bit
+    # simulate 12 bit adc conversion
     bit_reduced = bit_reduction(resampled)
 
     if pitch_method in PITCH_METHODS:
