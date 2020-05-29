@@ -89,9 +89,9 @@ def librosa_resample(y):
 def scipy_resample(y):
     resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
     # resampled = sp.signal.resample(y, len(y))
-    # decimated = sp.signal.resample(resampled, TARGET_SAMPLE_RATE)
-    # decimated = sp.signal.decimate(resampled, 2, 11)
-    return resampled
+    # decimated = sp.signal.resample(resampled, 2)
+    decimated = sp.signal.decimate(resampled, RESAMPLE_FACTOR)
+    return decimated
 
 
 @click.command()
