@@ -122,7 +122,6 @@ def pitch(file, st, pitch_method, resample_method):
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
-    # sf._subtypes['PCM_12'] = 0x0008
     sf.write('./aeiou.wav', pitched, TARGET_SAMPLE_RATE, format='WAV')
 
 
