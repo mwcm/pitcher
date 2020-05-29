@@ -28,6 +28,7 @@ RESAMPLE_FACTOR = 2
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
+# map these if they grow any longer
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
@@ -97,7 +98,7 @@ def pitch(file, st, pitch_method, resample_method):
     # resample #1
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    # TODO: which filter type?
+    # TODO: which filter type? fig 2 in sp-12 paper
     # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
     # then anti alias w/ order 11
 
