@@ -1,12 +1,12 @@
+import sox
 import click
 import librosa
 import numpy as np
 import scipy as sp
 import soundfile as sf
 
-
 from pyrubberband import pyrb
-
+import matplotlib.pyplot as plt
 
 ST_POSITIVE = 1.02930223664
 ST_NEGATIVE = {-1: 1.05652677103003,
@@ -18,6 +18,8 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
+
+OUTPUT_FILE_NAME = 'aeiou.wav'
 # INPUT_SAMPLE_RATE = 44100
 NORMALIZED_DB = [-32, -18]
 INPUT_SAMPLE_RATE = 96000
@@ -32,12 +34,23 @@ TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
+
+def signaltonoise(a, axis=0, ddof=0):
+    a = np.asanyarray(a)
+    m = a.mean(axis)
+    sd = a.std(axis=axis, ddof=ddof)
+    return np.where(sd == 0, 0, m/sd)
+
 # TODO: 12 bit
+# https://en.wikipedia.org/wiki/Audio_bit_depth
+# a way to simulate this could be to reduce the signal to noise ratio
+# ie from 16 bits to 12 by scaling the volume by 0.0625 then normalize
+# - avoid dithering in either operation
 
 # http://mural.maynoothuniversity.ie/4115/1/40.pdf
 
-# signal path: opamps > sample & hold > 12 bi quantizer > pitching > zero order
-# hold > optional eq filters
+# signal path: input filter > sample & hold > 12 bit quantizer > pitching > zero order
+# hold > optional eq filters > output filter
 
 # 4 total resamples:
 # - input to 96khz
@@ -95,12 +108,23 @@ def zero_order_hold(y):
     # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
     print(zero_hold_step1)
 
+    # TODO Should we do a decimate step here? or combine with "resample for
+    # output filter" step?
     zero_hold_step2 = sp.signal.decimate(zero_hold_step1,
                                          ZERO_ORDER_HOLD_MULTIPLIER)
     # or
     # zero_hold_step2 = librosa.core.resample(zero_hold_step1, TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, TARGET_SAMPLE_RATE)
     print(zero_hold_step2)
     return zero_hold_step2
+
+
+def bit_reduction(resampled):
+    t = sox.Transformer()
+    t.vol(0.0625)  # 4096 / 65,536 https://en.wikipedia.org/wiki/Audio_bit_depth
+    t.norm()
+    status, y_out, err = t.build(input_array=resampled, sample_rate_in=TARGET_SAMPLE_RATE)
+    return y_out
+
 
 # NOTE: maybe skip the anti aliasing?
 # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
@@ -119,7 +143,7 @@ def pitch(file, st, pitch_method, resample_method):
     # resample #1
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    # TODO: anti alias filter here fig 2 in sp-12 paper or sp-1200's above
+    # TODO: input anti alias filter here fig 2 in sp-12 paper or sp-1200's above
     # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
     # then anti alias w/ order 11
 
@@ -132,11 +156,35 @@ def pitch(file, st, pitch_method, resample_method):
     else:
         raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
 
+    # change to 12 bit
+    bit_reduced = bit_reduction(resampled)
+
+    # sf.write(OUTPUT_FILE_NAME, bit_reduced, TARGET_SAMPLE_RATE,
+    #          format='WAV', subtype='PCM_16')
+    # 
+    # reduced_file = sp.io.wavfile.read(OUTPUT_FILE_NAME)
+    # audio = reduced_file[1]
+    # plt.plot(audio)
+    # plt.ylabel('Amplitude')
+    # plt.xlabel('Time')
+    # plt.title('bit reduced wav')
+    # plt.show()
+    # 
+    # reduced_file = sp.io.wavfile.read('./test2.wav')
+    # audio = reduced_file[1]
+    # plt.plot(audio)
+    # plt.ylabel('Amplitude')
+    # plt.xlabel('Time')
+    # plt.title('og file')
+    # plt.show()
+    # 
+    # raise SystemExit
+
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
-            pitched = manual_pitch(resampled, st)
+            pitched = manual_pitch(bit_reduced, st)
         elif pitch_method == PITCH_METHODS[1]:
-            pitched = pyrb_pitch(resampled, st)
+            pitched = pyrb_pitch(bit_reduced, st)
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
@@ -150,7 +198,8 @@ def pitch(file, st, pitch_method, resample_method):
                                    TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
 
     # TODO: should have an output filter here, link above
-    sf.write('./aeiou.wav', output, OUTPUT_SAMPLE_RATE, format='WAV')
+    sf.write(OUTPUT_FILE_NAME, output, OUTPUT_SAMPLE_RATE,
+             format='WAV', subtype='PCM_16')
 
 
 if __name__ == '__main__':
