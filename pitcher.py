@@ -24,19 +24,30 @@ INPUT_SAMPLE_RATE = 96000
 
 RESAMPLE_FACTOR = 2
 
+INPUT_RATE = 96000
+OUTPUT_RATE = 48000
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
-# TODO
+# TODO verify that this corresponds with filters in sp-12 paper
 # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
-# The sample input goes via an anti-aliasing filter to remove unwanted frequencies that are above half the sample frequency, the cutoff is brick walled at 42dB.
+# The sample input goes via an anti-aliasing filter to remove unwanted
+# frequencies that are above half the sample frequency, the cutoff is brick walled at 42dB.
+
+# TODO: use this as reference to replicate sp-12 anti aliasing filters
+# https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
+
+# TODO: where does pitching happen between resample operations?
 
 
-# TODO: librosa resamples on load, what was the original order
-#       of resampling/pitching?
+# 4 total resamples:
+# - input to 96khz
+# - resample to multiple of sp 1200 rate
+# - resample to sp 1200 rate
+# - resample to 48khz for output
 
 
 # TODO: allow for lower than -8 st
@@ -76,9 +87,11 @@ def librosa_resample(y):
 
 
 def scipy_resample(y):
-    resampled = sp.resample(y, TARGET_SAMPLE_RATE_MULTIPLE)
-    decimated = sp.signal.decimate(resampled, 8, 11)
-    return decimated
+    resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
+    # resampled = sp.signal.resample(y, len(y))
+    # decimated = sp.signal.resample(resampled, TARGET_SAMPLE_RATE)
+    # decimated = sp.signal.decimate(resampled, 2, 11)
+    return resampled
 
 
 @click.command()
@@ -90,24 +103,27 @@ def pitch(file, st, pitch_method, resample_method):
 
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
+    # upsample = librosa.core.resample(y, INPUT_RATE)
+    # filtered = librosa.core.order_filter(upsample,)
+
     if resample_method in RESAMPLE_METHODS:
-        if pitch_method == RESAMPLE_METHODS[0]:
-            y = librosa_resample(y)
-        elif pitch_method == RESAMPLE_METHODS[1]:
-            y = scipy_resample(y)
+        if resample_method == RESAMPLE_METHODS[0]:
+            resampled = librosa_resample(y)
+        elif resample_method == RESAMPLE_METHODS[1]:
+            resampled = scipy_resample(y)
     else:
         raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
-            new = manual_pitch(y, st)
+            pitched = manual_pitch(resampled, st)
         elif pitch_method == PITCH_METHODS[1]:
-            new = pyrb_pitch(y, st)
+            pitched = pyrb_pitch(resampled, st)
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
     # sf._subtypes['PCM_12'] = 0x0008
-    sf.write('./aeiou.wav', new, TARGET_SAMPLE_RATE, format='WAV')
+    sf.write('./aeiou.wav', pitched, TARGET_SAMPLE_RATE, format='WAV')
 
 
 if __name__ == '__main__':
