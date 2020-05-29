@@ -23,22 +23,21 @@ NORMALIZED_DB = [-32, -18]
 INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
 
-RESAMPLE_FACTOR = 2
-
+ZERO_ORDER_HOLD_MULTIPLIER = 4
+RESAMPLE_MULTIPLIER = 2
 TARGET_SAMPLE_RATE = 26040
-TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
+TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 
 # map these if they grow any longer
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
-# TODO later verify that this corresponds with filters in sp-12 paper
-# http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
-# The sample input goes via an anti-aliasing filter to remove unwanted
-# frequencies that are above half the sample frequency,
-# the cutoff is brick walled at 42dB.
+# TODO: 12 bit
 
-# TODO: where does pitching happen between resample operations?
+# http://mural.maynoothuniversity.ie/4115/1/40.pdf
+
+# signal path: opamps > sample & hold > 12 bi quantizer > pitching > zero order
+# hold > optional eq filters
 
 # 4 total resamples:
 # - input to 96khz
@@ -84,8 +83,15 @@ def librosa_resample(y):
 
 def scipy_resample(y):
     resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
-    decimated = sp.signal.decimate(resampled, RESAMPLE_FACTOR)
+    decimated = sp.signal.decimate(resampled, RESAMPLE_MULTIPLIER)
     return decimated
+
+
+# NOTE: maybe skip the anti aliasing?
+# http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
+# The sample input goes via an anti-aliasing filter to remove unwanted
+# frequencies that are above half the sample frequency,
+# the cutoff is brick walled at 42dB.
 
 
 @click.command()
@@ -98,7 +104,7 @@ def pitch(file, st, pitch_method, resample_method):
     # resample #1
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    # TODO: which filter type? fig 2 in sp-12 paper
+    # TODO: anti alias filter here fig 2 in sp-12 paper or sp-1200's above
     # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
     # then anti alias w/ order 11
 
@@ -119,8 +125,27 @@ def pitch(file, st, pitch_method, resample_method):
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
-    # resample #4
-    output = librosa.core.resample(pitched, TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
+    # zero order hold, TODO: test all this properly
+    print(pitched)
+
+    zero_hold_step1 = np.repeat(pitched, ZERO_ORDER_HOLD_MULTIPLIER)
+    # or
+    # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
+    print(zero_hold_step1)
+
+    zero_hold_step2 = sp.signal.decimate(zero_hold_step1, ZERO_ORDER_HOLD_MULTIPLIER)
+    # or
+    # zero_hold_step2 = librosa.core.resample(zero_hold_step1, TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, TARGET_SAMPLE_RATE)
+
+    print(zero_hold_step2)
+
+    # TODO SSM-2044 here , find & adjust moog ladder filter code
+
+    # resample for output filter
+    # TODO investigate the exception that arises when fortranarray cast is rm'd
+    output = librosa.core.resample(np.asfortranarray(zero_hold_step2), TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
+
+    # TODO: should have an output filter here, link above
     sf.write('./aeiou.wav', output, OUTPUT_SAMPLE_RATE, format='WAV')
 
 
