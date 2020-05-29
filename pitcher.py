@@ -87,6 +87,21 @@ def scipy_resample(y):
     return decimated
 
 
+def zero_order_hold(y):
+    # zero order hold, TODO: test all this properly
+    print(y)
+    zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
+    # or
+    # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
+    print(zero_hold_step1)
+
+    zero_hold_step2 = sp.signal.decimate(zero_hold_step1,
+                                         ZERO_ORDER_HOLD_MULTIPLIER)
+    # or
+    # zero_hold_step2 = librosa.core.resample(zero_hold_step1, TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, TARGET_SAMPLE_RATE)
+    print(zero_hold_step2)
+    return zero_hold_step2
+
 # NOTE: maybe skip the anti aliasing?
 # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
 # The sample input goes via an anti-aliasing filter to remove unwanted
@@ -125,25 +140,14 @@ def pitch(file, st, pitch_method, resample_method):
     else:
         raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
 
-    # zero order hold, TODO: test all this properly
-    print(pitched)
-
-    zero_hold_step1 = np.repeat(pitched, ZERO_ORDER_HOLD_MULTIPLIER)
-    # or
-    # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
-    print(zero_hold_step1)
-
-    zero_hold_step2 = sp.signal.decimate(zero_hold_step1, ZERO_ORDER_HOLD_MULTIPLIER)
-    # or
-    # zero_hold_step2 = librosa.core.resample(zero_hold_step1, TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, TARGET_SAMPLE_RATE)
-
-    print(zero_hold_step2)
+    post_zero_order_hold = zero_order_hold(pitched)
 
     # TODO SSM-2044 here , find & adjust moog ladder filter code
 
     # resample for output filter
     # TODO investigate the exception that arises when fortranarray cast is rm'd
-    output = librosa.core.resample(np.asfortranarray(zero_hold_step2), TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
+    output = librosa.core.resample(np.asfortranarray(post_zero_order_hold),
+                                   TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
 
     # TODO: should have an output filter here, link above
     sf.write('./aeiou.wav', output, OUTPUT_SAMPLE_RATE, format='WAV')
