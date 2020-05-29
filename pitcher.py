@@ -21,27 +21,23 @@ ST_NEGATIVE = {-1: 1.05652677103003,
 # INPUT_SAMPLE_RATE = 44100
 NORMALIZED_DB = [-32, -18]
 INPUT_SAMPLE_RATE = 96000
+OUTPUT_SAMPLE_RATE = 48000
 
 RESAMPLE_FACTOR = 2
 
-INPUT_RATE = 96000
-OUTPUT_RATE = 48000
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_FACTOR
 
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
-# TODO verify that this corresponds with filters in sp-12 paper
+# TODO later verify that this corresponds with filters in sp-12 paper
 # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
 # The sample input goes via an anti-aliasing filter to remove unwanted
-# frequencies that are above half the sample frequency, the cutoff is brick walled at 42dB.
-
-# TODO: use this as reference to replicate sp-12 anti aliasing filters
-# https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
+# frequencies that are above half the sample frequency,
+# the cutoff is brick walled at 42dB.
 
 # TODO: where does pitching happen between resample operations?
-
 
 # 4 total resamples:
 # - input to 96khz
@@ -79,17 +75,14 @@ def pyrb_pitch(y, st):
 def librosa_resample(y):
     # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
     # "...resample to a multiple of the SP-12(00)'s sampling rate..."
-    y = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
-
+    resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
     # "...then downsample to the SP-12(00) rate"
-    y = librosa.core.resample(y, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
-    return y
+    downsampled = librosa.core.resample(resampled, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
+    return downsampled
 
 
 def scipy_resample(y):
     resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
-    # resampled = sp.signal.resample(y, len(y))
-    # decimated = sp.signal.resample(resampled, 2)
     decimated = sp.signal.decimate(resampled, RESAMPLE_FACTOR)
     return decimated
 
@@ -101,10 +94,12 @@ def scipy_resample(y):
 @click.option('--resample_method', default='librosa')
 def pitch(file, st, pitch_method, resample_method):
 
+    # resample #1
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    # upsample = librosa.core.resample(y, INPUT_RATE)
-    # filtered = librosa.core.order_filter(upsample,)
+    # TODO: which filter type?
+    # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
+    # then anti alias w/ order 11
 
     if resample_method in RESAMPLE_METHODS:
         if resample_method == RESAMPLE_METHODS[0]:
