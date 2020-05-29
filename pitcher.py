@@ -31,11 +31,12 @@ TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
+# https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
 
 # http://mural.maynoothuniversity.ie/4115/1/40.pdf
 
-# signal path: input filter > sample & hold > 12 bit quantizer > pitching > zero order
-# hold > optional eq filters > output filter
+# signal path: input filter > sample & hold > 12 bit quantizer > pitching
+# & decay > zero order hold > optional eq filters > output filter
 
 # 4 total resamples:
 # - input to 96khz
@@ -86,15 +87,15 @@ def scipy_resample(y):
 
 
 def zero_order_hold(y):
-    # zero order hold, TODO: test all this properly
+    # zero order hold, TODO: test all this properly, see sp-12 slides
     print(y)
     zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
     # or
     # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
     print(zero_hold_step1)
 
-    # TODO Should we do a decimate step here? or combine with "resample for
-    # output filter" step?
+    # TODO Should we do a decimate step here? or combine with "resample for output filter" step?
+    #      Or no decimate at all? In that case how do we get the post ZOH to a good length?
     zero_hold_step2 = sp.signal.decimate(zero_hold_step1,
                                          ZERO_ORDER_HOLD_MULTIPLIER)
     # or
