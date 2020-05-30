@@ -130,7 +130,7 @@ def quantize(x, S):
 @click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
 @click.option('--pitch_method', default='manual_pitch')
-@click.option('--resample_method', default='librosa')
+@click.option('--resample_method', default='scipy')
 def pitch(file, st, pitch_method, resample_method):
 
     # resample #1, purposefully oversample to 96khz
