@@ -1,4 +1,3 @@
-import sox
 import click
 import librosa
 import numpy as np
@@ -25,15 +24,15 @@ DELTA_S = 2*U/QUANTIZATION_LEVELS  # level distance
 S_MIDRISE = -U + DELTA_S/2 + np.arange(QUANTIZATION_LEVELS)*DELTA_S
 S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS)*DELTA_S
 
-OUTPUT_FILE_NAME = 'aeiou.wav'
 INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
 
 ZERO_ORDER_HOLD_MULTIPLIER = 4
-RESAMPLE_MULTIPLIER = 2
+RESAMPLE_MULTIPLIER = 1
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 
+OUTPUT_FILE_NAME = 'aeiou.wav'
 # map these if they grow any longer
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
@@ -110,7 +109,7 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
-# TODO: this is so slow
+# TODO: this is so slow with QUANTIZATION_BITS>=12
 def quantize(x, S):
     # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
     X = x.reshape((-1, 1))
@@ -120,15 +119,6 @@ def quantize(x, S):
     nearestIndex = dists.argmin(axis=1)
     quantized = S.flat[nearestIndex]
     return quantized
-
-
-def bit_reduction(resampled):
-    t = sox.Transformer()  # Transformer has dither=False by default which is good
-    t.vol(0.0625)  # 4096 / 65,536 https://en.wikipedia.org/wiki/Audio_bit_depth
-    t.norm()   # TODO: not sure if this should be done here or later/last, test properly
-
-    status, y_out, err = t.build(input_array=resampled, sample_rate_in=TARGET_SAMPLE_RATE)
-    return y_out
 
 
 # NOTE: maybe skip the anti aliasing?
@@ -160,8 +150,7 @@ def pitch(file, st, pitch_method, resample_method):
         raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
 
     # simulate 12 bit adc conversion
-    # bit_reduced = bit_reduction(resampled)
-    bit_reduced = quantize(resampled, S_MIDTREAD)
+    bit_reduced = quantize(resampled, S_MIDTREAD)  # TODO: midtread or midrise?
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
@@ -173,7 +162,7 @@ def pitch(file, st, pitch_method, resample_method):
 
     post_zero_order_hold = zero_order_hold(pitched)
 
-    # TODO SSM-2044 here , find & adjust moog ladder filter code
+    # TODO optional SSM-2044 here, find & adjust moog ladder filter code
 
     # resample for output filter
     # TODO investigate the exception that arises when fortranarray cast is rm'd
