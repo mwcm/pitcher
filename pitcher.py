@@ -109,6 +109,7 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
+# TODO: "MemoryError: Unable to allocate" for entire songs - needs to be done in batches - also why is dtype float64 here?
 # TODO: this is so slow with QUANTIZATION_BITS>=12
 def quantize(x, S):
     # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
