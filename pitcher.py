@@ -16,13 +16,14 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
+# TODO quantization bits should be an option
 QUANTIZATION_BITS = 8
-QUANTIZATION_LEVELS = 2**QUANTIZATION_BITS
+QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: Revisit
-DELTA_S = 2 * U/QUANTIZATION_LEVELS  # level distance
+DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
 
-S_MIDRISE = -U + DELTA_S/2 + np.arange(QUANTIZATION_LEVELS)*DELTA_S
-S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS)*DELTA_S
+S_MIDRISE = -U + DELTA_S / 2 + np.arange(QUANTIZATION_LEVELS) * DELTA_S
+S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS) * DELTA_S
 
 INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
@@ -32,7 +33,6 @@ RESAMPLE_MULTIPLIER = 1
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 
-OUTPUT_FILE_NAME = 'aeiou.wav'
 # map these if they grow any longer
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
@@ -50,8 +50,8 @@ RESAMPLE_METHODS = ['librosa', 'scipy']
 # - resample to 48khz for output
 
 
-# https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
 def sizeof_fmt(num, suffix='B'):
+    # https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
@@ -60,13 +60,12 @@ def sizeof_fmt(num, suffix='B'):
 
 
 def manual_pitch(y, st):
-
     if (0 > st >= -8):
         t = ST_NEGATIVE[st]
     elif (st >= 0):
         t = ST_POSITIVE ** -st
     else:
-        t = ST_POSITIVE ** (-st + 8)  # TODO: just a rough guess for now
+        t = ST_POSITIVE ** (-st + 8)  # TODO: rough guess, revisit
 
     n = int(np.round(len(y) * t))
     r = np.linspace(0, len(y), n)
@@ -102,12 +101,12 @@ def scipy_resample(y):
 
 
 def zero_order_hold(y):
-    # zero order hold, TODO: test all this properly, see sp-12 slides
+    # zero order hold, TODO: come back & test all this properly, see sp-12 slides
     zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
     # or
     # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
 
-    # TODO Should we do a decimate step here? or combine with "resample for output filter" step?
+    # TODO Decimate step here? or combine with "resample for output filter" step?
     #      Or no decimate at all? In that case how do we get the post ZOH to a good length?
     zero_hold_step2 = sp.signal.decimate(zero_hold_step1,
                                          ZERO_ORDER_HOLD_MULTIPLIER)
@@ -116,27 +115,33 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
-# TODO: "MemoryError: Unable to allocate" on abs(X-S)
-# TODO: so slow with QUANTIZATION_BITS>=12
-# TODO: make optional, why does array diff take so much ram at high quantize bits?
-#       the size of the arrays are large but this can't be hard to do
-#       efficiently
+# TODO: make optional
+# TODO: MemoryError: Unable to allocate... on abs(X-S)
+# TODO: why does array diff take so much ram at high quantize bits?
+#       the size of the arrays are large, but this can't be that hard to do
+#       efficiently, needs optimization
 # NOTE: not a huge effect on the sound above 8bits, fun to play around with tho
 def quantize(x, S):
 
-    x = x.astype(np.float32)
-    S = S.astype(np.float32)
+    # make things a little quicker _for now_ by using float16
+    # there are better ways to optimize this
+    x = x.astype(np.float16)
+    S = S.astype(np.float16)
 
     X = x.reshape((-1, 1))
-    S = S.reshape((1, -1))
+    # S = S.reshape((1, -1)) # don't think this is necessary?
 
-    dists = np.absolute(X-S)
-
-    print(sizeof_fmt(dists.nbytes))
-
+    # TODO:
+    # 1. how to do these in a way that results in nearestIndex &
+    #    avoids storing the entire array of distributions in memory at once?
+    # 2. how to do the operations most efficiently?
+    dists = abs(X-S)
     nearestIndex = dists.argmin(axis=1)
+
     quantized = S.flat[nearestIndex]
-    return quantized.reshape(x.shape)
+    quantized = quantized.reshape(x.shape)
+    print(sizeof_fmt(quantized.nbytes))
+    return quantized
 
 
 # NOTE: maybe skip the anti aliasing?
@@ -149,7 +154,8 @@ def quantize(x, S):
 @click.option('--st', default=0, help='number of semitones to shift')
 @click.option('--pitch_method', default='manual')
 @click.option('--resample_method', default='scipy')
-def pitch(file, st, pitch_method, resample_method):
+@click.option('--output_file', required=True)
+def pitch(file, st, pitch_method, resample_method, output_file):
 
     # resample #1, purposefully oversample to 96khz
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
@@ -188,7 +194,7 @@ def pitch(file, st, pitch_method, resample_method):
                                    TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
 
     # TODO: should have an output filter here, link above
-    sf.write(OUTPUT_FILE_NAME, output, OUTPUT_SAMPLE_RATE,
+    sf.write(output_file, output, OUTPUT_SAMPLE_RATE,
              format='WAV', subtype='PCM_16')
 
 
