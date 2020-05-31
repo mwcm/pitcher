@@ -16,7 +16,6 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-# TODO quantization bits should be an option
 QUANTIZATION_BITS = 8
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: Revisit
@@ -77,6 +76,13 @@ def manual_pitch(y, st):
     return new
 
 
+# paper says order 11, 48 khz cutoff
+# slides say order 6, 13.75 cutoff
+#  - in this case we'd use 13.02 (or TARGET_SAMPLE_RATE/2) for the sp1200
+def filter_input(y):
+    return
+
+
 def pyrb_pitch(y, st):
     t = ST_POSITIVE ** st  # close enough to og vals? maybe revisit
     pitched = pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
@@ -132,9 +138,9 @@ def quantize(x, S):
     # S = S.reshape((1, -1)) # don't think this is necessary?
 
     # TODO:
-    # 1. how to do these in a way that results in nearestIndex &
+    # 1. how to do these two operations in a way that results in nearestIndex &
     #    avoids storing the entire array of distributions in memory at once?
-    # 2. how to do the operations most efficiently?
+    # 2. how to do these operations most efficiently?
     dists = abs(X-S)
     nearestIndex = dists.argmin(axis=1)
 
