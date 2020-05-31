@@ -16,15 +16,13 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-QUANTIZATION_BITS = 12
+QUANTIZATION_BITS = 8
 QUANTIZATION_LEVELS = 2**QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: Revisit
 DELTA_S = 2 * U/QUANTIZATION_LEVELS  # level distance
 
 S_MIDRISE = -U + DELTA_S/2 + np.arange(QUANTIZATION_LEVELS)*DELTA_S
 S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS)*DELTA_S
-S_MIDRISE = S_MIDRISE.astype(np.float32)
-S_MIDTREAD = S_MIDTREAD.astype(np.float32)
 
 INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
@@ -61,7 +59,6 @@ def sizeof_fmt(num, suffix='B'):
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
-# TODO: allow for lower than -8 st
 def manual_pitch(y, st):
 
     if (0 > st >= -8):
@@ -69,7 +66,7 @@ def manual_pitch(y, st):
     elif (st >= 0):
         t = ST_POSITIVE ** -st
     else:
-        raise ValueError('invalid semitone count, should be 0 > st > -8')
+        t = ST_POSITIVE ** (-st + 8)  # TODO: just a rough guess for now
 
     n = int(np.round(len(y) * t))
     r = np.linspace(0, len(y), n)
@@ -100,9 +97,7 @@ def scipy_resample(y):
     seconds = len(y)/INPUT_SAMPLE_RATE
     target_samples = int(seconds * TARGET_SAMPLE_RATE) + 1
     resampled = sp.signal.resample(y, target_samples)
-    # resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
     decimated = sp.signal.decimate(resampled, RESAMPLE_MULTIPLIER)
-    decimated = decimated.astype(np.float32)
     return decimated
 
 
@@ -121,16 +116,22 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
-# TODO: "MemoryError: Unable to allocate" for entire songs - needs to be done in batches - also why is dtype float64 here?
-# TODO: this is so slow with QUANTIZATION_BITS>=12
+# TODO: "MemoryError: Unable to allocate" on abs(X-S)
+# TODO: so slow with QUANTIZATION_BITS>=12
+# TODO: make optional, why does array diff take so much ram at high quantize bits?
+#       the size of the arrays are large but this can't be hard to do
+#       efficiently
+# NOTE: not a huge effect on the sound above 8bits, fun to play around with tho
 def quantize(x, S):
 
-    # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
+    x = x.astype(np.float32)
+    S = S.astype(np.float32)
+
     X = x.reshape((-1, 1))
     S = S.reshape((1, -1))
-    dists = abs(X-S)
 
-    print(S.dtype)
+    dists = np.absolute(X-S)
+
     print(sizeof_fmt(dists.nbytes))
 
     nearestIndex = dists.argmin(axis=1)
