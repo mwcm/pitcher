@@ -77,7 +77,8 @@ def manual_pitch(y, st):
 
 
 # paper says order 11, 48 khz cutoff
-# slides say order 6, 13.75 cutoff
+# slides say order 6, 13.75 cutoff, assuming spec described 6 but 11 fit
+#  - try both cutoffs, would guess it'd be 48 at that point in the chain
 #  - in this case we'd use 13.02 (or TARGET_SAMPLE_RATE/2) for the sp1200
 def filter_input(y):
     return
