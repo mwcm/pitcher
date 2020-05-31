@@ -18,8 +18,8 @@ ST_NEGATIVE = {-1: 1.05652677103003,
 
 QUANTIZATION_BITS = 12
 QUANTIZATION_LEVELS = 2**QUANTIZATION_BITS
-U = 1  # max. Amplitude to be quantized
-DELTA_S = 2*U/QUANTIZATION_LEVELS  # level distance
+U = 1  # max Amplitude to be quantized TODO: Revisit
+DELTA_S = 2 * U/QUANTIZATION_LEVELS  # level distance
 
 S_MIDRISE = -U + DELTA_S/2 + np.arange(QUANTIZATION_LEVELS)*DELTA_S
 S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS)*DELTA_S
@@ -86,18 +86,20 @@ def librosa_resample(y):
 
 
 def scipy_resample(y):
-    resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
+    seconds = len(y)/INPUT_SAMPLE_RATE
+    target_samples = int(seconds * TARGET_SAMPLE_RATE) + 1
+    resampled = sp.signal.resample(y, target_samples)
+    # resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
     decimated = sp.signal.decimate(resampled, RESAMPLE_MULTIPLIER)
+    decimated = decimated.astype(np.float32)
     return decimated
 
 
 def zero_order_hold(y):
     # zero order hold, TODO: test all this properly, see sp-12 slides
-    print(y)
     zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
     # or
     # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
-    print(zero_hold_step1)
 
     # TODO Should we do a decimate step here? or combine with "resample for output filter" step?
     #      Or no decimate at all? In that case how do we get the post ZOH to a good length?
@@ -105,13 +107,13 @@ def zero_order_hold(y):
                                          ZERO_ORDER_HOLD_MULTIPLIER)
     # or
     # zero_hold_step2 = librosa.core.resample(zero_hold_step1, TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, TARGET_SAMPLE_RATE)
-    print(zero_hold_step2)
     return zero_hold_step2
 
 
 # TODO: "MemoryError: Unable to allocate" for entire songs - needs to be done in batches - also why is dtype float64 here?
 # TODO: this is so slow with QUANTIZATION_BITS>=12
 def quantize(x, S):
+
     # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
     X = x.reshape((-1, 1))
     S = S.reshape((1, -1))
