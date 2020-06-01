@@ -86,16 +86,15 @@ def manual_pitch(y, st):
 def filter_input(y):
 
     # combining these two filters seems like it should have the right effect
-    f1 = sp.signal.filter_design.iirdesign(
-        TARGET_SAMPLE_RATE/2, 17360, 10, 72, ftype='cheby2', analog=True, output='sos'
+    b, a = sp.signal.filter_design.iirdesign(
+        0.5, 0.666666, 10, 72, ftype='cheby2', analog=False
     )
-    f2 = sp.signal.filter_design.iirdesign(
-        TARGET_SAMPLE_RATE/2, 17360, 10, 72, ftype='butter', analog=True, output='sos'
+    b2, a2 = sp.signal.filter_design.iirdesign(
+        0.5, 0.666666, 10, 72, ftype='butter', analog=False
     )
 
-    y = sp.signal.sosfilt(f1, y)
-    y = sp.signal.sosfilt(f2, y)
-
+    y = sp.signal.lfilter(b, a, y)
+    y = sp.signal.lfilter(b2, a2, y)
     return y
 
 
@@ -109,8 +108,6 @@ def librosa_resample(y):
     # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
     # "...resample to a multiple of the SP-12(00)'s sampling rate..."
     resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
-    resampled = filter_input(resampled)
-
     # "...then downsample to the SP-12(00) rate"
     downsampled = librosa.core.resample(resampled, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
     return downsampled
@@ -120,6 +117,7 @@ def scipy_resample(y):
     seconds = len(y)/INPUT_SAMPLE_RATE
     target_samples = int(seconds * TARGET_SAMPLE_RATE) + 1
     resampled = sp.signal.resample(y, target_samples)
+
     decimated = sp.signal.decimate(resampled, RESAMPLE_MULTIPLIER)
     return decimated
 
@@ -186,6 +184,8 @@ def pitch(file, st, pitch_method, resample_method, output_file):
 
     # TODO: input anti alias filter here fig 2 in sp-12 paper or sp-1200's above
     # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
+
+    y = filter_input(y)
 
     # resample #2 & #3
     if resample_method in RESAMPLE_METHODS:
