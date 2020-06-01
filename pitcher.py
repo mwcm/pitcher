@@ -77,11 +77,26 @@ def manual_pitch(y, st):
 
 
 # paper says order 11, 48 khz cutoff
-# slides say order 6, 13.75 cutoff, assuming spec described 6 but 11 fit
+# slides say order 6, 13.75 cutoff, spec described 6 but 11 fit
+# looks to me like 4th order ellipti
 #  - try both cutoffs, would guess it'd be 48 at that point in the chain
 #  - in this case we'd use 13.02 (or TARGET_SAMPLE_RATE/2) for the sp1200
+# https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
+# https://dsp.stackexchange.com/questions/38564/whats-the-pass-band-ripple-and-stop-band-attenuation-of-a-digital-filter
 def filter_input(y):
-    return
+
+    # combining these two filters seems like it should have the right effect
+    f1 = sp.signal.filter_design.iirdesign(
+        TARGET_SAMPLE_RATE/2, 17360, 10, 72, ftype='cheby2', analog=True, output='sos'
+    )
+    f2 = sp.signal.filter_design.iirdesign(
+        TARGET_SAMPLE_RATE/2, 17360, 10, 72, ftype='butter', analog=True, output='sos'
+    )
+
+    y = sp.signal.sosfilt(f1, y)
+    y = sp.signal.sosfilt(f2, y)
+
+    return y
 
 
 def pyrb_pitch(y, st):
@@ -94,6 +109,8 @@ def librosa_resample(y):
     # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
     # "...resample to a multiple of the SP-12(00)'s sampling rate..."
     resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
+    resampled = filter_input(resampled)
+
     # "...then downsample to the SP-12(00) rate"
     downsampled = librosa.core.resample(resampled, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
     return downsampled
@@ -169,7 +186,6 @@ def pitch(file, st, pitch_method, resample_method, output_file):
 
     # TODO: input anti alias filter here fig 2 in sp-12 paper or sp-1200's above
     # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
-    # then anti alias w/ order 11
 
     # resample #2 & #3
     if resample_method in RESAMPLE_METHODS:
