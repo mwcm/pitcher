@@ -36,18 +36,6 @@ TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
-# https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
-# http://mural.maynoothuniversity.ie/4115/1/40.pdf
-
-# signal path: input filter > sample & hold > 12 bit quantizer > pitching
-# & decay > zero order hold > optional eq filters > output filter
-
-# 4 total resamples:
-# - input to 96khz
-# - resample to multiple of sp 1200 rate
-# - resample to sp 1200 rate
-# - resample to 48khz for output
-
 
 def sizeof_fmt(num, suffix='B'):
     # https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
@@ -93,7 +81,10 @@ def filter_input(y):
 
 
 def filter_output(y):
-    return
+    # another approximation
+    f1 = sp.signal.butter(6, .158, btype='low', output='sos')
+    y = sp.signal.sosfilt(f1, y)
+    return y
 
 
 def pyrb_pitch(y, st):
@@ -105,9 +96,11 @@ def pyrb_pitch(y, st):
 def librosa_resample(y):
     # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
     # "...resample to a multiple of the SP-12(00)'s sampling rate..."
-    resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
+    resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE,
+                                      TARGET_SAMPLE_RATE_MULTIPLE)
     # "...then downsample to the SP-12(00) rate"
-    downsampled = librosa.core.resample(resampled, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
+    downsampled = librosa.core.resample(resampled, TARGET_SAMPLE_RATE_MULTIPLE,
+                                        TARGET_SAMPLE_RATE)
     return downsampled
 
 
@@ -135,7 +128,6 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
-# TODO: make optional
 # TODO: MemoryError: Unable to allocate... on abs(X-S)
 # TODO: why does array diff take so much ram at high quantize bits?
 #       the size of the arrays are large, but this can't be that hard to do
@@ -149,7 +141,7 @@ def quantize(x, S):
     S = S.astype(np.float16)
 
     X = x.reshape((-1, 1))
-    # S = S.reshape((1, -1)) # don't think this is necessary?
+    S = S.reshape((1, -1))  # don't think this is necessary
 
     # TODO:
     # 1. how to do these two operations in a way that results in nearestIndex &
@@ -164,26 +156,34 @@ def quantize(x, S):
     return quantized
 
 
-# NOTE: maybe skip the anti aliasing?
-# http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
-# The sample input goes via an anti-aliasing filter to remove unwanted
-# frequencies that are above half the sample frequency,
-# the cutoff is brick walled at 42dB.
+# Based on:
+# https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
+
+# signal path: input filter > sample & hold > 12 bit quantizer > pitching
+# & decay > zero order hold > optional eq filters > output filter
+
+# 4 total resamples:
+# - input to 96khz
+# - resample to multiple of sp 1200 rate
+# - resample to sp 1200 rate
+# - resample to 48khz for output
 @click.command()
 @click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
-@click.option('--pitch_method', default='manual')
-@click.option('--resample_method', default='scipy')
-@click.option('--output_file', required=True)
-def pitch(file, st, pitch_method, resample_method, output_file):
+@click.option('--pitch-method', default='manual')
+@click.option('--resample-method', default='scipy')
+@click.option('--output-file', required=True)
+@click.option('--skip-input-filter', is_flag=True, default=False)
+@click.option('--skip-output-filter', is_flag=True, default=False)
+@click.option('--skip-quantize', is_flag=True, default=False)
+def pitch(file, st, pitch_method, resample_method, output_file,
+          skip_input_filter, skip_output_filter, skip_quantize):
 
     # resample #1, purposefully oversample to 96khz
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
-    # TODO: input anti alias filter here fig 2 in sp-12 paper or sp-1200's above
-    # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
-
-    y = filter_input(y)
+    if not skip_input_filter:
+        y = filter_input(y)
 
     # resample #2 & #3
     if resample_method in RESAMPLE_METHODS:
@@ -192,10 +192,12 @@ def pitch(file, st, pitch_method, resample_method, output_file):
         elif resample_method == RESAMPLE_METHODS[1]:
             resampled = scipy_resample(y)
     else:
-        raise ValueError(f'invalid resample method, valid methods are {RESAMPLE_METHODS}')
+        raise ValueError('invalid resample method, '
+                         f'valid methods are {RESAMPLE_METHODS}')
 
     # simulate 12 bit adc conversion
-    bit_reduced = quantize(resampled, S_MIDTREAD)  # TODO: midtread or midrise?
+    if not skip_quantize:
+        bit_reduced = quantize(resampled, S_MIDTREAD)  # TODO: midtread or midrise?
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
@@ -203,7 +205,8 @@ def pitch(file, st, pitch_method, resample_method, output_file):
         elif pitch_method == PITCH_METHODS[1]:
             pitched = pyrb_pitch(bit_reduced, st)
     else:
-        raise ValueError(f'invalid pitch method, valid methods are {PITCH_METHODS}')
+        raise ValueError('invalid pitch method, '
+                         f'valid methods are {PITCH_METHODS}')
 
     post_zero_order_hold = zero_order_hold(pitched)
 
@@ -214,7 +217,9 @@ def pitch(file, st, pitch_method, resample_method, output_file):
     output = librosa.core.resample(np.asfortranarray(post_zero_order_hold),
                                    TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
 
-    # TODO: should have an output filter here, link above
+    if not skip_output_filter:
+        output = filter_output(output)
+
     sf.write(output_file, output, OUTPUT_SAMPLE_RATE,
              format='WAV', subtype='PCM_16')
 
