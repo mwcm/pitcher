@@ -76,26 +76,24 @@ def manual_pitch(y, st):
     return new
 
 
-# paper says order 11, 48 khz cutoff
-# slides say order 6, 13.75 cutoff, spec described 6 but 11 fit
-# looks to me like 4th order ellipti
-#  - try both cutoffs, would guess it'd be 48 at that point in the chain
-#  - in this case we'd use 13.02 (or TARGET_SAMPLE_RATE/2) for the sp1200
 # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
-# https://dsp.stackexchange.com/questions/38564/whats-the-pass-band-ripple-and-stop-band-attenuation-of-a-digital-filter
 def filter_input(y):
 
-    # combining these two filters seems like it should have the right effect
-    b, a = sp.signal.filter_design.iirdesign(
-        0.5, 0.666666, 10, 72, ftype='cheby2', analog=False
+    # these two filters combined are a good approximation
+    f1 = sp.signal.filter_design.iirdesign(
+        0.5, 0.666666, 10, 72, ftype='cheby2', analog=False, output='sos'
     )
-    b2, a2 = sp.signal.filter_design.iirdesign(
-        0.5, 0.666666, 10, 72, ftype='butter', analog=False
+    f2 = sp.signal.filter_design.iirdesign(
+        0.5, 0.666666, 10, 72, ftype='butter', analog=False, output='sos'
     )
 
-    y = sp.signal.lfilter(b, a, y)
-    y = sp.signal.lfilter(b2, a2, y)
+    y = sp.signal.sosfilt(f1, y)
+    y = sp.signal.sosfilt(f2, y)
     return y
+
+
+def filter_output(y):
+    return
 
 
 def pyrb_pitch(y, st):
