@@ -17,7 +17,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-QUANTIZATION_BITS = 12
+QUANTIZATION_BITS = 8
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: Revisit
 DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
@@ -36,15 +36,6 @@ TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 # map these if they grow any longer
 PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
-
-
-def sizeof_fmt(num, suffix='B'):
-    # https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
-        if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1024.0
-    return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
 def manual_pitch(y, st):
@@ -81,7 +72,7 @@ def filter_input(y):
 
 def filter_output(y):
     # another approximation
-    f1 = sp.signal.butter(6, .158, btype='low', output='sos')
+    f1 = sp.signal.butter(4, .110, btype='low', output='sos')
     y = sp.signal.sosfilt(f1, y)
     return y
 
@@ -147,6 +138,12 @@ def quantize(x, S):
     return quantized.reshape(x.shape)
 
 
+# TODO
+# - re-test chunking performance on bigger files
+# - supress numba warning
+# - better logging
+# - readme
+
 # Based on:
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
 
@@ -167,8 +164,10 @@ def quantize(x, S):
 @click.option('--skip-input-filter', is_flag=True, default=False)
 @click.option('--skip-output-filter', is_flag=True, default=False)
 @click.option('--skip-quantize', is_flag=True, default=False)
+@click.option('--skip-normalize', is_flag=True, default=False)
 def pitch(file, st, pitch_method, resample_method, output_file,
-          skip_input_filter, skip_output_filter, skip_quantize):
+          skip_input_filter, skip_output_filter, skip_quantize,
+          skip_normalize):
 
     # resample #1, purposefully oversample to 96khz
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
@@ -210,6 +209,9 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
     if not skip_output_filter:
         output = filter_output(output)
+
+    if not skip_normalize:
+        output = librosa.util.normalize(output)
 
     sf.write(output_file, output, OUTPUT_SAMPLE_RATE,
              format='WAV', subtype='PCM_16')
