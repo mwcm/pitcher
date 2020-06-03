@@ -4,8 +4,8 @@ import numpy as np
 import scipy as sp
 import soundfile as sf
 
-from pyrubberband import pyrb
 from numba import jit
+from pyrubberband import pyrb
 
 ST_POSITIVE = 1.02930223664
 ST_NEGATIVE = {-1: 1.05652677103003,
@@ -139,10 +139,12 @@ def quantize(x, S):
 
 
 # TODO
-# - re-test chunking performance on bigger files
-# - supress numba warning
 # - better logging
+# - requirements
 # - readme
+# - re-test chunking performance on bigger files
+# - replace pyrb
+# - supress numba warning
 
 # Based on:
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
