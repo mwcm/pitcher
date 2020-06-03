@@ -17,7 +17,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-QUANTIZATION_BITS = 8
+QUANTIZATION_BITS = 12
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: Revisit
 DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
@@ -137,6 +137,7 @@ def quantize(x, S):
     X = x.reshape((-1, 1))
     S = S.reshape((1, -1))  # don't think this is necessary
 
+    # working
     @jit(nopython=True)
     def compute_distributions(X, S):
         y = np.zeros(len(X), dtype=np.int64)
@@ -146,7 +147,25 @@ def quantize(x, S):
             y[i] = nearestIndex
         return y
 
-    y = compute_distributions(X, S)
+    # def chunks(lst, n):
+    #     """Yield successive n-sized chunks from lst."""
+    #     for i in range(0, len(lst), n):
+    #         yield lst[i:i + n]
+
+    # def compute_distributions(X, S):
+    #     chunk_size = 72
+    #     for i, chunk in enumerate(chunks(X, chunk_size)):
+    #         dists = np.abs(chunk-S)
+    #         print(sizeof_fmt(dists.nbytes))
+    #         nearestIndex = np.argmin(dists, axis=1)
+    #         yield nearestIndex
+    # y = []
+    # for i, el in enumerate(compute_distributions(X, S)):
+    #     print(el)
+    #     y.extend(el)
+
+    y = np.fromiter(compute_distributions(X, S), dtype=np.int64)
+    print(list(y))
     quantized = S.flat[y]
     quantized = quantized.reshape(x.shape)
     return quantized
@@ -221,4 +240,6 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
 
 if __name__ == '__main__':
-    pitch()
+    import cProfile
+    cProfile.run('pitch()')
+    # pitch()
