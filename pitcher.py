@@ -127,17 +127,12 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
-# TODO: MemoryError: Unable to allocate... on abs(X-S)
-# TODO: why does array diff take so much ram at high quantize bits?
-#       the size of the arrays are large, but this can't be that hard to do
-#       efficiently, needs optimization
-# NOTE: not a huge effect on the sound above 8bits, fun to play around with tho
+# NOTE: not much effect on the sound above 8bits, fun to play around with tho
 def quantize(x, S):
 
     X = x.reshape((-1, 1))
     S = S.reshape((1, -1))  # don't think this is necessary
 
-    # working
     @jit(nopython=True)
     def compute_distributions(X, S):
         y = np.zeros(len(X), dtype=np.int64)
@@ -147,28 +142,9 @@ def quantize(x, S):
             y[i] = nearestIndex
         return y
 
-    # def chunks(lst, n):
-    #     """Yield successive n-sized chunks from lst."""
-    #     for i in range(0, len(lst), n):
-    #         yield lst[i:i + n]
-
-    # def compute_distributions(X, S):
-    #     chunk_size = 72
-    #     for i, chunk in enumerate(chunks(X, chunk_size)):
-    #         dists = np.abs(chunk-S)
-    #         print(sizeof_fmt(dists.nbytes))
-    #         nearestIndex = np.argmin(dists, axis=1)
-    #         yield nearestIndex
-    # y = []
-    # for i, el in enumerate(compute_distributions(X, S)):
-    #     print(el)
-    #     y.extend(el)
-
-    y = np.fromiter(compute_distributions(X, S), dtype=np.int64)
-    print(list(y))
+    y = compute_distributions(X, S)
     quantized = S.flat[y]
-    quantized = quantized.reshape(x.shape)
-    return quantized
+    return quantized.reshape(x.shape)
 
 
 # Based on:
@@ -240,6 +216,4 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
 
 if __name__ == '__main__':
-    import cProfile
-    cProfile.run('pitch()')
-    # pitch()
+    pitch()
