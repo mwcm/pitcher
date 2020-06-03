@@ -5,6 +5,7 @@ import scipy as sp
 import soundfile as sf
 
 from pyrubberband import pyrb
+from numba import jit
 
 ST_POSITIVE = 1.02930223664
 ST_NEGATIVE = {-1: 1.05652677103003,
@@ -66,7 +67,6 @@ def manual_pitch(y, st):
 
 # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
 def filter_input(y):
-
     # these two filters combined are a good approximation
     f1 = sp.signal.filter_design.iirdesign(
         0.5, 0.666666, 10, 72, ftype='cheby2', analog=False, output='sos'
@@ -74,7 +74,6 @@ def filter_input(y):
     f2 = sp.signal.filter_design.iirdesign(
         0.5, 0.666666, 10, 72, ftype='butter', analog=False, output='sos'
     )
-
     y = sp.signal.sosfilt(f1, y)
     y = sp.signal.sosfilt(f2, y)
     return y
@@ -135,24 +134,21 @@ def zero_order_hold(y):
 # NOTE: not a huge effect on the sound above 8bits, fun to play around with tho
 def quantize(x, S):
 
-    # make things a little quicker _for now_ by using float16
-    # there are better ways to optimize this
-    x = x.astype(np.float16)
-    S = S.astype(np.float16)
-
     X = x.reshape((-1, 1))
     S = S.reshape((1, -1))  # don't think this is necessary
 
-    # TODO:
-    # 1. how to do these two operations in a way that results in nearestIndex &
-    #    avoids storing the entire array of distributions in memory at once?
-    # 2. how to do these operations most efficiently?
-    dists = abs(X-S)
-    nearestIndex = dists.argmin(axis=1)
+    @jit(nopython=True)
+    def compute_distributions(X, S):
+        y = np.zeros(len(X), dtype=np.int64)
+        for i, item in enumerate(X):
+            dists = np.abs(item-S)
+            nearestIndex = np.argmin(dists)
+            y[i] = nearestIndex
+        return y
 
-    quantized = S.flat[nearestIndex]
+    y = compute_distributions(X, S)
+    quantized = S.flat[y]
     quantized = quantized.reshape(x.shape)
-    print(sizeof_fmt(quantized.nbytes))
     return quantized
 
 
