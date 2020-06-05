@@ -8,6 +8,8 @@ from numba import jit
 from pyrubberband import pyrb
 
 ST_POSITIVE = 1.02930223664
+# TODO: revisit, "sp-12 has 32 different tuning settings with various skip amounts"
+# skip of ~0.64062 creates nice aliasing
 ST_NEGATIVE = {-1: 1.05652677103003,
                -2: 1.1215356033380033,
                -3: 1.1834835840896631,
@@ -17,7 +19,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-QUANTIZATION_BITS = 8
+QUANTIZATION_BITS = 12
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: Revisit
 DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
@@ -58,12 +60,12 @@ def manual_pitch(y, st):
 
 # https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
 def filter_input(y):
-    # these two filters combined are a good approximation
+    # these two filters combined are a decent approximation
     f1 = sp.signal.filter_design.iirdesign(
-        0.5, 0.666666, 10, 72, ftype='cheby2', analog=False, output='sos'
+        0.6666, 0.82, 10, 72, ftype='cheby2', analog=False, output='sos'
     )
     f2 = sp.signal.filter_design.iirdesign(
-        0.5, 0.666666, 10, 72, ftype='butter', analog=False, output='sos'
+        0.6666, 0.82, 10, 72, ftype='butter', analog=False, output='sos'
     )
     y = sp.signal.sosfilt(f1, y)
     y = sp.signal.sosfilt(f2, y)
@@ -126,7 +128,7 @@ def quantize(x, S):
 
     @jit(nopython=True)
     def compute_distributions(X, S):
-        y = np.zeros(len(X), dtype=np.int64)
+        y = np.zeros(len(X), dtype=np.int64)  # TODO: remove int64
         for i, item in enumerate(X):
             dists = np.abs(item-S)
             nearestIndex = np.argmin(dists)
@@ -142,7 +144,9 @@ def quantize(x, S):
 # - better logging
 # - requirements
 # - readme
-# - re-test chunking performance on bigger files
+# - try adding ring mod
+# - revisit pitch values
+# - re-test chunking performance on full songs
 # - replace pyrb
 # - supress numba warning
 
@@ -213,6 +217,7 @@ def pitch(file, st, pitch_method, resample_method, output_file,
         output = filter_output(output)
 
     if not skip_normalize:
+        # TODO: maybe saturate instead?
         output = librosa.util.normalize(output)
 
     sf.write(output_file, output, OUTPUT_SAMPLE_RATE,
