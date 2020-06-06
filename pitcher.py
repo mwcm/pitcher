@@ -3,7 +3,6 @@ import librosa
 import numpy as np
 import scipy as sp
 import soundfile as sf
-import nsound
 
 from numba import jit
 from pyrubberband import pyrb
