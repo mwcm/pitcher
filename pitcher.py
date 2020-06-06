@@ -3,6 +3,7 @@ import librosa
 import numpy as np
 import scipy as sp
 import soundfile as sf
+import nsound
 
 from numba import jit
 from pyrubberband import pyrb
@@ -62,16 +63,31 @@ def manual_pitch(y, st):
 def filter_input(y):
     # these two filters combined are a decent approximation
     f1 = sp.signal.filter_design.iirdesign(
-        0.6666, 0.82, 10, 72, ftype='cheby2', analog=False, output='sos'
+        0.6666, 0.82, 1, 75, ftype='ellip', analog=False, output='sos'
     )
     f2 = sp.signal.filter_design.iirdesign(
-        0.6666, 0.82, 10, 72, ftype='butter', analog=False, output='sos'
+        0.6666, 0.83, 10, 72, ftype='butter', analog=False, output='sos'
     )
     y = sp.signal.sosfilt(f1, y)
     y = sp.signal.sosfilt(f2, y)
     return y
 
 
+# https://patrickignoto.com/2017/04/11/mumt-618-final-project/
+# for i = 1:N
+#     # Input to first LP filter stage (after waveshaping)
+#     input = tanh(x(i) - 4*Gres*(ym1(4) - Gcomp * x(i)));
+#     # Send input through 4 stages of LP filtering
+#     for n = 1:4
+#         # Output of each stage
+#         output = ((glp1*input + glp2*xm1(n) - ym1(n))*g) + ym1(n);
+#         xm1(n) = input;     # store x[n-1] for each stage
+#         ym1(n) = output;    #store y[n-1] for each stage
+#         input = output;     #input to next stage is this stage's output
+#     end
+#
+#     y(i) = output;
+# end
 def filter_output(y):
     # another approximation
     f1 = sp.signal.butter(4, .110, btype='low', output='sos')
@@ -105,11 +121,11 @@ def scipy_resample(y):
     return decimated
 
 
+# TODO: come back & test all this properly, see sp-12 slides
 def zero_order_hold(y):
-    # zero order hold, TODO: come back & test all this properly, see sp-12 slides
-    zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
+    # zero order hold,     zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
     # or
-    # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
+    zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
 
     # TODO Decimate step here? or combine with "resample for output filter" step?
     #      Or no decimate at all? In that case how do we get the post ZOH to a good length?
