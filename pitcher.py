@@ -122,9 +122,9 @@ def scipy_resample(y):
 
 # TODO: come back & test all this properly, see sp-12 slides
 def zero_order_hold(y):
-    # zero order hold,     zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
+    zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
     # or
-    zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
+    # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
 
     # TODO Decimate step here? or combine with "resample for output filter" step?
     #      Or no decimate at all? In that case how do we get the post ZOH to a good length?
@@ -135,7 +135,7 @@ def zero_order_hold(y):
     return zero_hold_step2
 
 
-# NOTE: not much effect on the sound above 8bits, fun to play around with tho
+# NOTE: not much effect on the sound above 12bits
 def quantize(x, S):
 
     X = x.reshape((-1, 1))
@@ -156,10 +156,12 @@ def quantize(x, S):
 
 
 # TODO
+# - redo output filter
+# - try adding ring mod ?
+# - revisit zoh
 # - better logging
 # - requirements
 # - readme
-# - try adding ring mod
 # - revisit pitch values
 # - re-test chunking performance on full songs
 # - replace pyrb
@@ -220,8 +222,6 @@ def pitch(file, st, pitch_method, resample_method, output_file,
                          f'valid methods are {PITCH_METHODS}')
 
     post_zero_order_hold = zero_order_hold(pitched)
-
-    # TODO optional SSM-2044 here, find & adjust moog ladder filter code
 
     # resample for output filter
     # TODO investigate the exception that arises when fortranarray cast is rm'd
