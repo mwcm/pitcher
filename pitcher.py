@@ -67,6 +67,7 @@ def filter_input(x):
     return y
 
 
+# matlab implementation of moog ladder vcf
 # https://patrickignoto.com/2017/04/11/mumt-618-final-project/
 # for i = 1:N
 #     # Input to first LP filter stage (after waveshaping)
@@ -90,7 +91,7 @@ def filter_output(x):
     gain = np.power(10, att/20)
     f = sp.signal.firwin2(45, freq, gain, fs=OUTPUT_SAMPLE_RATE, antisymmetric=False)
     sos = sp.signal.tf2sos(f, [1.0])
-    y = sp.signal.sosfilt(sos, x)  # can use sosfiltfilt if phase is an issue but will result in 2 * filter order
+    y = sp.signal.sosfilt(sos, x)
     return y
 
 
@@ -120,22 +121,12 @@ def scipy_resample(y):
     return decimated
 
 
-# TODO: come back & test all this properly, see sp-12 slides
 def zero_order_hold(y):
-    zero_hold_step1 = np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
-    # or
-    # zero_hold_step1 = np.fromiter((pitched[int(i)] for i in np.linspace(0, len(pitched)-1, num=len(pitched) * ZERO_ORDER_HOLD_MULTIPLIER)), np.float32)
-
-    # TODO Decimate step here? or combine with "resample for output filter" step?
-    #      Or no decimate at all? In that case how do we get the post ZOH to a good length?
-    zero_hold_step2 = sp.signal.decimate(zero_hold_step1,
-                                         ZERO_ORDER_HOLD_MULTIPLIER)
-    # or
-    # zero_hold_step2 = librosa.core.resample(zero_hold_step1, TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, TARGET_SAMPLE_RATE)
-    return zero_hold_step2
+    # intentionally oversample by repeating each sample 4 times
+    # could also try a freq aliased sinc filter
+    return np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
 
 
-# NOTE: not much effect on the sound above 12bits
 def quantize(x, S):
 
     X = x.reshape((-1, 1))
@@ -143,7 +134,12 @@ def quantize(x, S):
 
     @jit(nopython=True)
     def compute_distributions(X, S):
-        y = np.zeros(len(X), dtype=np.int64)  # TODO: remove int64
+        # TODO: revisit, how to init with system default int dtype?
+        # - np.int64 works
+        # - np.int32 works
+        # - np.int breaks
+        # - no value breaks
+        y = np.zeros(len(X), dtype=np.int32)
         for i, item in enumerate(X):
             dists = np.abs(item-S)
             nearestIndex = np.argmin(dists)
@@ -156,16 +152,19 @@ def quantize(x, S):
 
 
 # TODO
-# - redo output filter
-# - try adding ring mod ?
-# - revisit zoh
-# - better logging
 # - requirements
 # - readme
+# - impletement vcf?
+# - implement input filter using firwin?
+# - try adding ring mod?
+# - better logging
 # - revisit pitch values
 # - re-test chunking performance on full songs
 # - replace pyrb
 # - supress numba warning
+
+# NOTES:
+# - could use sosfiltfilt for zero phase filtering, but it doubles filter order
 
 # Based on:
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
@@ -173,11 +172,6 @@ def quantize(x, S):
 # signal path: input filter > sample & hold > 12 bit quantizer > pitching
 # & decay > zero order hold > optional eq filters > output filter
 
-# 4 total resamples:
-# - input to 96khz
-# - resample to multiple of sp 1200 rate
-# - resample to sp 1200 rate
-# - resample to 48khz for output
 @click.command()
 @click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
@@ -192,14 +186,15 @@ def pitch(file, st, pitch_method, resample_method, output_file,
           skip_input_filter, skip_output_filter, skip_quantize,
           skip_normalize):
 
-    # resample #1, purposefully oversample to 96khz
+    # oversample to 96khz
     y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
 
     if not skip_input_filter:
+        # anti aliasing filter
         y = filter_input(y)
 
-    # resample #2 & #3
     if resample_method in RESAMPLE_METHODS:
+        # resample to target sample rate
         if resample_method == RESAMPLE_METHODS[0]:
             resampled = librosa_resample(y)
         elif resample_method == RESAMPLE_METHODS[1]:
@@ -208,8 +203,8 @@ def pitch(file, st, pitch_method, resample_method, output_file,
         raise ValueError('invalid resample method, '
                          f'valid methods are {RESAMPLE_METHODS}')
 
-    # simulate 12 bit adc conversion
     if not skip_quantize:
+        # simulate analog -> digital conversion
         bit_reduced = quantize(resampled, S_MIDTREAD)  # TODO: midtread or midrise?
 
     if pitch_method in PITCH_METHODS:
@@ -221,14 +216,17 @@ def pitch(file, st, pitch_method, resample_method, output_file,
         raise ValueError('invalid pitch method, '
                          f'valid methods are {PITCH_METHODS}')
 
+    # oversample again (default factor of 4)
     post_zero_order_hold = zero_order_hold(pitched)
 
     # resample for output filter
     # TODO investigate the exception that arises when fortranarray cast is rm'd
     output = librosa.core.resample(np.asfortranarray(post_zero_order_hold),
-                                   TARGET_SAMPLE_RATE, OUTPUT_SAMPLE_RATE)
+                                   TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER,
+                                   OUTPUT_SAMPLE_RATE)
 
     if not skip_output_filter:
+        # low pass equalization filter
         output = filter_output(output)
 
     if not skip_normalize:
