@@ -40,7 +40,7 @@ PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
 
-def manual_pitch(y, st):
+def manual_pitch(x, st):
     if (0 > st >= -8):
         t = ST_NEGATIVE[st]
     elif (st >= 0):
@@ -48,27 +48,22 @@ def manual_pitch(y, st):
     else:
         t = ST_POSITIVE ** (-st + 8)  # TODO: rough guess, revisit
 
-    n = int(np.round(len(y) * t))
-    r = np.linspace(0, len(y), n)
+    n = int(np.round(len(x) * t))
+    r = np.linspace(0, len(x), n)
     new = np.zeros(n, dtype=np.float32)
 
     for e in range(n - 1):
-        new[e] = y[int(np.round(r[e]))]
+        new[e] = x[int(np.round(r[e]))]
 
     return new
 
 
-# https://dsp.stackexchange.com/questions/2864/how-to-write-lowpass-filter-for-sampled-signal-in-python
-def filter_input(y):
-    # these two filters combined are a decent approximation
-    f1 = sp.signal.filter_design.iirdesign(
-        0.6666, 0.82, 1, 75, ftype='ellip', analog=False, output='sos'
-    )
-    f2 = sp.signal.filter_design.iirdesign(
-        0.6666, 0.83, 10, 72, ftype='butter', analog=False, output='sos'
-    )
-    y = sp.signal.sosfilt(f1, y)
-    y = sp.signal.sosfilt(f2, y)
+def filter_input(x):
+    # approximating the anti aliasing filter, don't think this needs to be
+    # perfect since at fs/2=13.02kHz only -10dB attenuation, might be able to
+    # improve accuracy with firwin
+    f = sp.signal.ellip(4, 1, 72, 0.666, analog=False, output='sos')
+    y = sp.signal.sosfilt(f, x)
     return y
 
 
@@ -87,10 +82,15 @@ def filter_input(y):
 #
 #     y(i) = output;
 # end
-def filter_output(y):
-    # another approximation
-    f1 = sp.signal.butter(4, .110, btype='low', output='sos')
-    y = sp.signal.sosfilt(f1, y)
+
+def filter_output(x):
+    # use window method to replicate the fixed output filter
+    freq = np.array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
+    att = np.array([0, 0, -5, -10, -15, -23, -28, -35, -40, -40])
+    gain = np.power(10, att/20)
+    f = sp.signal.firwin2(45, freq, gain, fs=OUTPUT_SAMPLE_RATE, antisymmetric=False)
+    sos = sp.signal.tf2sos(f, [1.0])
+    y = sp.signal.sosfilt(sos, x)  # can use sosfiltfilt if phase is an issue but will result in 2 * filter order
     return y
 
 
@@ -232,7 +232,6 @@ def pitch(file, st, pitch_method, resample_method, output_file,
         output = filter_output(output)
 
     if not skip_normalize:
-        # TODO: maybe saturate instead?
         output = librosa.util.normalize(output)
 
     sf.write(output_file, output, OUTPUT_SAMPLE_RATE,
