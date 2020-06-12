@@ -21,7 +21,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
 
 QUANTIZATION_BITS = 12
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
-U = 1  # max Amplitude to be quantized TODO: Revisit
+U = 1  # max Amplitude to be quantized TODO: revisit?
 DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
 
 S_MIDRISE = -U + DELTA_S / 2 + np.arange(QUANTIZATION_LEVELS) * DELTA_S
@@ -46,16 +46,12 @@ def manual_pitch(x, st):
     elif (st >= 0):
         t = ST_POSITIVE ** -st
     else:
-        t = ST_POSITIVE ** (-st + 8)  # TODO: rough guess, revisit
+        t = ST_POSITIVE ** (-st + 8)  # TODO: guess, revisit
 
-    n = int(np.round(len(x) * t))
-    r = np.linspace(0, len(x), n)
-    new = np.zeros(n, dtype=np.float32)
-
-    for e in range(n - 1):
-        new[e] = x[int(np.round(r[e]))]
-
-    return new
+    n = np.round(len(x) * t).astype(np.int32)
+    r = np.linspace(0, len(x), n, dtype=np.float32).round().astype(np.int32)
+    pitched = [x[r[e]] for e in range(n-1)]  # could yield here
+    return pitched
 
 
 def filter_input(x):
@@ -66,23 +62,6 @@ def filter_input(x):
     y = sp.signal.sosfilt(f, x)
     return y
 
-
-# matlab implementation of moog ladder vcf
-# https://patrickignoto.com/2017/04/11/mumt-618-final-project/
-# for i = 1:N
-#     # Input to first LP filter stage (after waveshaping)
-#     input = tanh(x(i) - 4*Gres*(ym1(4) - Gcomp * x(i)));
-#     # Send input through 4 stages of LP filtering
-#     for n = 1:4
-#         # Output of each stage
-#         output = ((glp1*input + glp2*xm1(n) - ym1(n))*g) + ym1(n);
-#         xm1(n) = input;     # store x[n-1] for each stage
-#         ym1(n) = output;    #store y[n-1] for each stage
-#         input = output;     #input to next stage is this stage's output
-#     end
-#
-#     y(i) = output;
-# end
 
 def filter_output(x):
     # use window method to replicate the fixed output filter
@@ -139,7 +118,7 @@ def quantize(x, S):
         # - np.int32 works
         # - np.int breaks
         # - no value breaks
-        y = np.zeros(len(X), dtype=np.int32)
+        y = np.zeros(len(X), dtype=np.int64)
         for i, item in enumerate(X):
             dists = np.abs(item-S)
             nearestIndex = np.argmin(dists)
@@ -154,6 +133,7 @@ def quantize(x, S):
 # TODO
 # - requirements
 # - readme
+# - test & improve speed, quantize still slow?
 # - impletement vcf?
 # - implement input filter using firwin?
 # - try adding ring mod?
