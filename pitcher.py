@@ -1,3 +1,4 @@
+import math
 import click
 import librosa
 import numpy as np
@@ -19,7 +20,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-QUANTIZATION_BITS = 12
+QUANTIZATION_BITS = 4
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: revisit?
 DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
@@ -95,7 +96,6 @@ def scipy_resample(y):
     seconds = len(y)/INPUT_SAMPLE_RATE
     target_samples = int(seconds * TARGET_SAMPLE_RATE) + 1
     resampled = sp.signal.resample(y, target_samples)
-
     decimated = sp.signal.decimate(resampled, RESAMPLE_MULTIPLIER)
     return decimated
 
@@ -112,22 +112,16 @@ def quantize(x, S):
     S = S.reshape((1, -1))  # don't think this is necessary
 
     @jit(nopython=True)
-    def compute_distributions(X, S):
-        # TODO: revisit, how to init with system default int dtype?
-        # - np.int64 works
-        # - np.int32 works
-        # - np.int breaks
-        # - no value breaks
-        y = np.zeros(len(X), dtype=np.int64)
+    def nearest_value(X, S):
+        y = np.zeros(len(X), dtype=np.int32)
         for i, item in enumerate(X):
-            dists = np.abs(item-S)
-            nearestIndex = np.argmin(dists)
-            y[i] = nearestIndex
+            y[i] = np.abs(item-S).argmin()
         return y
 
-    y = compute_distributions(X, S)
-    quantized = S.flat[y]
-    return quantized.reshape(x.shape)
+    # y = nearest_value(X, S)
+    y = np.digitize(X.flatten(), S.flatten())
+    quantized = S.flat[y].reshape(x.shape)
+    return quantized
 
 
 # TODO
@@ -185,13 +179,13 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
     if not skip_quantize:
         # simulate analog -> digital conversion
-        bit_reduced = quantize(resampled, S_MIDTREAD)  # TODO: midtread or midrise?
+        resampled = quantize(resampled, S_MIDTREAD)  # TODO: midtread or midrise?
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
-            pitched = manual_pitch(bit_reduced, st)
+            pitched = manual_pitch(resampled, st)
         elif pitch_method == PITCH_METHODS[1]:
-            pitched = pyrb_pitch(bit_reduced, st)
+            pitched = pyrb_pitch(resampled, st)
     else:
         raise ValueError('invalid pitch method, '
                          f'valid methods are {PITCH_METHODS}')
