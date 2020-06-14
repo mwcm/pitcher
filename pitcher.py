@@ -1,13 +1,11 @@
-import math
 import click
 import numpy as np
 import scipy as sp
-import soundfile as sf
+import audiofile as af
 
-from librosa import load
-from librosa.core import resample
-from librosa.util import normalize
 from librosa.effects import time_stretch
+from librosa.core import resample
+from librosa import load
 
 from SAR import SAR
 from numba import jit
@@ -25,7 +23,7 @@ ST_NEGATIVE = {-1: 1.05652677103003,
                -7: 1.5028019735639886,
                -8: 1.5766735700797954}
 
-QUANTIZATION_BITS = 4
+QUANTIZATION_BITS = 12
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
 U = 1  # max Amplitude to be quantized TODO: revisit?
 DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
@@ -37,7 +35,7 @@ INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
 
 ZERO_ORDER_HOLD_MULTIPLIER = 4
-RESAMPLE_MULTIPLIER = 1
+RESAMPLE_MULTIPLIER = 1  # should be 2
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 
@@ -111,13 +109,12 @@ def zero_order_hold(y):
 
 
 def sar_quantize(x):
-    bit = 12  # number of bits in SAR ADC
+    # TODO: play around with these & move them up
     ncomp = 0.001  # noise of the comparator
     ndac = 0  # noise of the C-DAC
     nsamp = 0  # sampling kT/C noise
-    radix = 2
 
-    myadc = SAR(x, bit, ncomp, ndac, nsamp, radix)
+    myadc = SAR(x, QUANTIZATION_BITS, ncomp, ndac, nsamp, 2)
     out = myadc.sarloop()
     return out
 
@@ -144,6 +141,7 @@ def digitize(x, S):
     return y
 
 # TODO
+# - FIX QUANTIZED AMPLITUDE (between 0 and 0.5)
 # - requirements
 # - readme
 # - test & improve speed
@@ -173,10 +171,10 @@ def digitize(x, S):
 @click.option('--skip-input-filter', is_flag=True, default=False)
 @click.option('--skip-output-filter', is_flag=True, default=False)
 @click.option('--skip-quantize', is_flag=True, default=False)
-@click.option('--skip-normalize', is_flag=True, default=False)
+@click.option('--normalize', is_flag=True, default=False)
 def pitch(file, st, pitch_method, resample_method, output_file,
           skip_input_filter, skip_output_filter, skip_quantize,
-          skip_normalize):
+          normalize):
 
     # oversample to 96khz
     y, s = load(file, sr=INPUT_SAMPLE_RATE)
@@ -213,17 +211,14 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
     # resample for output filter
     # TODO investigate the exception that arises when fortranarray cast is rm'd
-    output = resample(np.asfortranarray(post_zero_order_hold), TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, OUTPUT_SAMPLE_RATE)
+    output = resample(np.asfortranarray(post_zero_order_hold),
+                      TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, OUTPUT_SAMPLE_RATE)
 
     if not skip_output_filter:
         # low pass equalization filter
         output = filter_output(output)
 
-    if not skip_normalize:
-        output = normalize(output)
-
-    sf.write(output_file, output, OUTPUT_SAMPLE_RATE,
-             format='WAV', subtype='PCM_16')
+    af.write(output_file, output, OUTPUT_SAMPLE_RATE, '16bit', normalize)
 
 
 if __name__ == '__main__':

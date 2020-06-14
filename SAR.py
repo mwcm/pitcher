@@ -54,5 +54,5 @@ class SAR:
         for cyloop in range(self.bit):
             compout = self.comp(self.adcin)
             self.adcin += compout * (-1) * self.cdac[cyloop] #update cdac output
-            self.adcout += np.power(self.radix, self.bit-1-cyloop)*np.maximum(compout, -1)
+            self.adcout += np.power(self.radix, self.bit-1-cyloop)*np.maximum(compout, 0)
         return(self.adcout)
