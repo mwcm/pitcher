@@ -3,6 +3,7 @@ import numpy as np
 import scipy as sp
 import audiofile as af
 
+from assistant_module import cap_array_generator, fast_conversion
 from librosa.effects import time_stretch
 from librosa.core import resample
 from librosa import load
@@ -35,7 +36,7 @@ INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
 
 ZERO_ORDER_HOLD_MULTIPLIER = 4
-RESAMPLE_MULTIPLIER = 1  # should be 2
+RESAMPLE_MULTIPLIER = 2
 TARGET_SAMPLE_RATE = 26040
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 
@@ -96,7 +97,7 @@ def librosa_resample(y):
 
 def scipy_resample(y):
     seconds = len(y)/INPUT_SAMPLE_RATE
-    target_samples = int(seconds * TARGET_SAMPLE_RATE) + 1
+    target_samples = int(seconds * TARGET_SAMPLE_RATE_MULTIPLE) + 1
     resampled = sp.signal.resample(y, target_samples)
     decimated = sp.signal.decimate(resampled, RESAMPLE_MULTIPLIER)
     return decimated
@@ -106,6 +107,16 @@ def zero_order_hold(y):
     # intentionally oversample by repeating each sample 4 times
     # could also try a freq aliased sinc filter
     return np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
+# 
+# 
+# def sar_quant(x):
+#     mismatch = 0.001
+#     n = 12
+#     vref = 1.2
+#     cap_array, weights = cap_array_generator(n, 2, mismatch)
+#     y = fast_conversion(x, weights, n, vref)
+#     y = y.astype(np.float32)
+#     return y
 
 
 def sar_quantize(x):
@@ -115,7 +126,10 @@ def sar_quantize(x):
     nsamp = 0  # sampling kT/C noise
 
     myadc = SAR(x, QUANTIZATION_BITS, ncomp, ndac, nsamp, 2)
+    print(x)
     out = myadc.sarloop()
+    print(out)
+    # between 1 and 0 still, need to go back to "analog" samples?
     return out
 
 
