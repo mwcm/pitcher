@@ -1,10 +1,15 @@
 import math
 import click
-import librosa
 import numpy as np
 import scipy as sp
 import soundfile as sf
 
+from librosa import load
+from librosa.core import resample
+from librosa.util import normalize
+from librosa.effects import time_stretch
+
+from SAR import SAR
 from numba import jit
 from pyrubberband import pyrb
 
@@ -49,8 +54,9 @@ def manual_pitch(x, st):
     else:
         t = ST_POSITIVE ** (-st + 8)  # TODO: guess, revisit
 
-    n = np.round(len(x) * t).astype(np.int32)
-    r = np.linspace(0, len(x), n, dtype=np.float32).round().astype(np.int32)
+    n = int(np.round(len(x) * t))
+    # - 1 accounts for rounding
+    r = np.linspace(0, len(x) - 1, n).round().astype(np.int32)
     pitched = [x[r[e]] for e in range(n-1)]  # could yield here
     return pitched
 
@@ -78,17 +84,15 @@ def filter_output(x):
 def pyrb_pitch(y, st):
     t = ST_POSITIVE ** st  # close enough to og vals? maybe revisit
     pitched = pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
-    return librosa.effects.time_stretch(pitched, t)
+    return time_stretch(pitched, t)
 
 
 def librosa_resample(y):
     # http://www.synthark.org/Archive/EmulatorArchive/SP1200.html
     # "...resample to a multiple of the SP-12(00)'s sampling rate..."
-    resampled = librosa.core.resample(y, INPUT_SAMPLE_RATE,
-                                      TARGET_SAMPLE_RATE_MULTIPLE)
+    resampled = resample(y, INPUT_SAMPLE_RATE, TARGET_SAMPLE_RATE_MULTIPLE)
     # "...then downsample to the SP-12(00) rate"
-    downsampled = librosa.core.resample(resampled, TARGET_SAMPLE_RATE_MULTIPLE,
-                                        TARGET_SAMPLE_RATE)
+    downsampled = resample(resampled, TARGET_SAMPLE_RATE_MULTIPLE, TARGET_SAMPLE_RATE)
     return downsampled
 
 
@@ -106,6 +110,18 @@ def zero_order_hold(y):
     return np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
 
 
+def sar_quantize(x):
+    bit = 12  # number of bits in SAR ADC
+    ncomp = 0.001  # noise of the comparator
+    ndac = 0  # noise of the C-DAC
+    nsamp = 0  # sampling kT/C noise
+    radix = 2
+
+    myadc = SAR(x, bit, ncomp, ndac, nsamp, radix)
+    out = myadc.sarloop()
+    return out
+
+
 def quantize(x, S):
 
     X = x.reshape((-1, 1))
@@ -118,23 +134,25 @@ def quantize(x, S):
             y[i] = np.abs(item-S).argmin()
         return y
 
-    # y = nearest_value(X, S)
-    y = np.digitize(X.flatten(), S.flatten())
+    y = nearest_value(X, S)
     quantized = S.flat[y].reshape(x.shape)
     return quantized
 
 
+def digitize(x, S):
+    y = np.digitize(x.flatten(), S.flatten())
+    return y
+
 # TODO
 # - requirements
 # - readme
-# - test & improve speed, quantize still slow?
-# - impletement vcf?
+# - test & improve speed
+# - impletement vcf? (ring moog)
 # - implement input filter using firwin?
-# - try adding ring mod?
 # - better logging
 # - revisit pitch values
-# - re-test chunking performance on full songs
-# - replace pyrb
+# - replace or delete pyrb
+# - replace librosa if there is a module with better performance
 # - supress numba warning
 
 # NOTES:
@@ -161,7 +179,7 @@ def pitch(file, st, pitch_method, resample_method, output_file,
           skip_normalize):
 
     # oversample to 96khz
-    y, s = librosa.load(file, sr=INPUT_SAMPLE_RATE)
+    y, s = load(file, sr=INPUT_SAMPLE_RATE)
 
     if not skip_input_filter:
         # anti aliasing filter
@@ -179,7 +197,7 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
     if not skip_quantize:
         # simulate analog -> digital conversion
-        resampled = quantize(resampled, S_MIDTREAD)  # TODO: midtread or midrise?
+        resampled = sar_quantize(resampled)  # TODO: midtread or midrise?
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
@@ -195,16 +213,14 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
     # resample for output filter
     # TODO investigate the exception that arises when fortranarray cast is rm'd
-    output = librosa.core.resample(np.asfortranarray(post_zero_order_hold),
-                                   TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER,
-                                   OUTPUT_SAMPLE_RATE)
+    output = resample(np.asfortranarray(post_zero_order_hold), TARGET_SAMPLE_RATE * ZERO_ORDER_HOLD_MULTIPLIER, OUTPUT_SAMPLE_RATE)
 
     if not skip_output_filter:
         # low pass equalization filter
         output = filter_output(output)
 
     if not skip_normalize:
-        output = librosa.util.normalize(output)
+        output = normalize(output)
 
     sf.write(output_file, output, OUTPUT_SAMPLE_RATE,
              format='WAV', subtype='PCM_16')
