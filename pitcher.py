@@ -8,7 +8,7 @@ from librosa.effects import time_stretch
 from librosa.core import resample
 from librosa import load
 
-from SAR import SAR
+from SAR import SAR, normalize_input
 from numba import jit
 from pyrubberband import pyrb
 
@@ -109,28 +109,23 @@ def zero_order_hold(y):
     return np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
 
 
-def sar_quant(x):
-    mismatch = 0.001
-    n = 12
-    vref = 1.2
-    cap_array, weights = cap_array_generator(n, 2, mismatch)
-    y = fast_conversion(x, weights, n, vref)
-    y = y.astype(np.float32)
-    return y
-
-
 # peaks seem slightly lower using this
 def sar_quantize(x):
     ncomp = 0.001  # noise of the comparator
     ndac = 0  # noise of the C-DAC
     nsamp = 0  # sampling kT/C noise
 
-    # play around with this more later
-    myadc = SAR(x, QUANTIZATION_BITS, ncomp, ndac, nsamp, 2)
-    print(x)
-    out = myadc.sarloop()
-    print(out)
-    return out
+    myadc = SAR(QUANTIZATION_BITS, ncomp, ndac, nsamp, 2)
+    normalized, center, maxbin = normalize_input(x)
+    print(normalized)
+    # run adc
+    adcout = myadc.sarloop(normalized)
+    _ = ''  # throwaway, don't need center or maxbin here
+    adcout, _, _, normalize_input(adcout)
+    # rescale to original
+    rescaled = adcout * maxbin + center
+    print(rescaled)
+    return rescaled
 
 
 def quantize(x, S):
