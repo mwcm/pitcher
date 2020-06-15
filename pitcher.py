@@ -107,36 +107,36 @@ def zero_order_hold(y):
     # intentionally oversample by repeating each sample 4 times
     # could also try a freq aliased sinc filter
     return np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
-# 
-# 
-# def sar_quant(x):
-#     mismatch = 0.001
-#     n = 12
-#     vref = 1.2
-#     cap_array, weights = cap_array_generator(n, 2, mismatch)
-#     y = fast_conversion(x, weights, n, vref)
-#     y = y.astype(np.float32)
-#     return y
 
 
+def sar_quant(x):
+    mismatch = 0.001
+    n = 12
+    vref = 1.2
+    cap_array, weights = cap_array_generator(n, 2, mismatch)
+    y = fast_conversion(x, weights, n, vref)
+    y = y.astype(np.float32)
+    return y
+
+
+# peaks seem slightly lower using this
 def sar_quantize(x):
-    # TODO: play around with these & move them up
     ncomp = 0.001  # noise of the comparator
     ndac = 0  # noise of the C-DAC
     nsamp = 0  # sampling kT/C noise
 
+    # play around with this more later
     myadc = SAR(x, QUANTIZATION_BITS, ncomp, ndac, nsamp, 2)
     print(x)
     out = myadc.sarloop()
     print(out)
-    # between 1 and 0 still, need to go back to "analog" samples?
     return out
 
 
 def quantize(x, S):
 
-    X = x.reshape((-1, 1))
-    S = S.reshape((1, -1))  # don't think this is necessary
+    X = x.reshape((-1, 1)).astype(np.float32)
+    S = S.reshape((1, -1)).astype(np.float32)  # don't think this is necessary
 
     @jit(nopython=True)
     def nearest_value(X, S):
@@ -145,11 +145,16 @@ def quantize(x, S):
             y[i] = np.abs(item-S).argmin()
         return y
 
+    y = []
+    X = np.asfortranarray(X)
+    S = np.asfortranarray(S)
     y = nearest_value(X, S)
     quantized = S.flat[y].reshape(x.shape)
     return quantized
 
 
+# output of digitize and unmodified SAR ADC looks incorrect in audacity
+# probably correct for the intended function, but we only need the quantize
 def digitize(x, S):
     y = np.digitize(x.flatten(), S.flatten())
     return y
@@ -209,7 +214,7 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
     if not skip_quantize:
         # simulate analog -> digital conversion
-        resampled = sar_quantize(resampled)  # TODO: midtread or midrise?
+        resampled = quantize(resampled, S_MIDRISE)  # TODO: midtread or midrise?
 
     if pitch_method in PITCH_METHODS:
         if pitch_method == PITCH_METHODS[0]:
