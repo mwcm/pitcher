@@ -3,7 +3,6 @@ import numpy as np
 import scipy as sp
 import audiofile as af
 
-from assistant_module import cap_array_generator, fast_conversion
 from librosa.effects import time_stretch
 from librosa.core import resample
 from librosa import load
@@ -54,7 +53,7 @@ def manual_pitch(x, st):
         t = ST_POSITIVE ** (-st + 8)  # TODO: guess, revisit
 
     n = int(np.round(len(x) * t))
-    # - 1 accounts for rounding
+    # - 1 accounts for rounding issues
     r = np.linspace(0, len(x) - 1, n).round().astype(np.int32)
     pitched = [x[r[e]] for e in range(n-1)]  # could yield here
     return pitched
@@ -63,7 +62,7 @@ def manual_pitch(x, st):
 def filter_input(x):
     # approximating the anti aliasing filter, don't think this needs to be
     # perfect since at fs/2=13.02kHz only -10dB attenuation, might be able to
-    # improve accuracy with firwin
+    # improve accuracy in the 15 -> 20kHz range with firwin
     f = sp.signal.ellip(4, 1, 72, 0.666, analog=False, output='sos')
     y = sp.signal.sosfilt(f, x)
     return y
@@ -72,7 +71,7 @@ def filter_input(x):
 def filter_output(x):
     # use window method to replicate the fixed output filter
     freq = np.array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
-    att = np.array([0, 0, -5, -10, -15, -23, -28, -35, -40, -40])
+    att = np.array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
     gain = np.power(10, att/20)
     f = sp.signal.firwin2(45, freq, gain, fs=OUTPUT_SAMPLE_RATE, antisymmetric=False)
     sos = sp.signal.tf2sos(f, [1.0])
@@ -109,7 +108,9 @@ def zero_order_hold(y):
     return np.repeat(y, ZERO_ORDER_HOLD_MULTIPLIER)
 
 
-# peaks seem slightly lower using this
+# we'd like output to be measured in the same units as x, just quantized
+# rescaling currently isn't working, maybe revisit this
+# peaks also seem slightly lower using this vs original quantize method
 def sar_quantize(x):
     ncomp = 0.001  # noise of the comparator
     ndac = 0  # noise of the C-DAC
@@ -148,24 +149,22 @@ def quantize(x, S):
     return quantized
 
 
-# output of digitize and unmodified SAR ADC looks incorrect in audacity
-# probably correct for the intended function, but we only need the quantize
+# similar to sar, output of digitize would need to be rescaled back to original
+# we'd like output to be measured in the same units as x, just quantized
 def digitize(x, S):
     y = np.digitize(x.flatten(), S.flatten())
     return y
 
 # TODO
-# - FIX QUANTIZED AMPLITUDE (between 0 and 0.5)
 # - requirements
 # - readme
-# - test & improve speed
 # - impletement vcf? (ring moog)
-# - implement input filter using firwin?
-# - better logging
+# - improve input filter fit
+# - logging
 # - revisit pitch values
 # - replace or delete pyrb
 # - replace librosa if there is a module with better performance
-# - supress numba warning
+# - supress librosa numba warning
 
 # NOTES:
 # - could use sosfiltfilt for zero phase filtering, but it doubles filter order
