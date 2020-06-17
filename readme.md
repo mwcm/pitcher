@@ -7,6 +7,11 @@ Sampler](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 
 Useful for re-sampling & pitching audio to get that "SP-1200 sound" before importing into a DAW
 
+### Installation
+```
+TODO
+```
+
 ### Usage:
 ```
 python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
