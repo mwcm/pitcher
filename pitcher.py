@@ -7,7 +7,6 @@ from librosa.effects import time_stretch
 from librosa.core import resample
 from librosa import load
 
-from SAR import SAR, normalize_input
 from numba import jit
 from pyrubberband import pyrb
 
@@ -103,26 +102,6 @@ def zero_order_hold(y):
     # intentionally oversample by repeating each sample 4 times
     # could also try a freq aliased sinc filter
     return np.repeat(y, ZOH_MULTIPLIER)
-
-
-# TODO: revisit
-# we'd like output to be measured in the same units as x, just quantized
-# rescaling currently isn't working, maybe revisit this
-# peaks also seem slightly lower using this vs original quantize method
-def sar_quantize(x):
-    ncomp = 0.001  # noise of the comparator
-    ndac = 0       # noise of the C-DAC
-    nsamp = 0      # sampling kT/C noise
-
-    myadc = SAR(QUANTIZATION_BITS, ncomp, ndac, nsamp, 2)
-    normalized, center, maxbin = normalize_input(x)
-    # run adc
-    adcout = myadc.sarloop(normalized)
-    _ = ''  # throwaway, don't need center or maxbin here
-    adcout, _, _, normalize_input(adcout)
-    # rescale to original
-    rescaled = adcout * maxbin + center
-    return rescaled
 
 
 def nearest_values(x, y):

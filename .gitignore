@@ -4,6 +4,8 @@
 *.wav
 *.js
 .DS_Store
+SAR.py
+AudioAnalyzer.py
 
 
 # Logs
