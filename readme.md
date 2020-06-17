@@ -10,9 +10,9 @@ Useful for re-sampling & pitching audio to get that "SP-1200 sound" before impor
 
 ### Installation
 ```
-1. use git to clone this repo, or download it as a ZIP using the "Clone or
+1. Use git to clone this repo, or download it as a ZIP using the "Clone or
    download" button above & then unzip
-2. open your terminal of choice
+2. Open your terminal of choice
 3. cd to the new pitcher directory
 4. pip3 install -r ./requirements.txt
 ```
