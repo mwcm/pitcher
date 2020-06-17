@@ -1,4 +1,4 @@
-# pitcher
+# Pitcher
 
 Emulation of the SP-12 & SP-1200 signal chain in a Python script
 
@@ -7,12 +7,12 @@ Sampler](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 
 Useful for re-sampling & pitching audio to get that "SP-1200 sound" before importing into a DAW
 
-### usage:
+### Usage:
 ```
 python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 ```
 
-### options:
+### Options:
 ```
 --st                 - # of semitones to shift the pitch by, int, required
 --normalize          - optionally normalize output audio, flag
