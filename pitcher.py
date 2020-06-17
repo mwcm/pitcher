@@ -11,17 +11,18 @@ from SAR import SAR, normalize_input
 from numba import jit
 from pyrubberband import pyrb
 
-ST_POSITIVE = 1.02930223664
-# TODO: revisit, "sp-12 has 32 different tuning settings with various skip amounts"
-# skip of ~0.64062 creates nice aliasing
-ST_NEGATIVE = {-1: 1.05652677103003,
-               -2: 1.1215356033380033,
-               -3: 1.1834835840896631,
-               -4: 1.253228360845465,
-               -5: 1.3310440397149297,
-               -6: 1.4039714929646099,
-               -7: 1.5028019735639886,
-               -8: 1.5766735700797954}
+POSITIVE_TUNING_RATIO = 1.02930223664
+# TODO: maybe revisit, "sp-12 has 32 different tuning settings with various skip amounts"
+# according to paper looks like skip of ~0.64062 creates nice aliasing?
+# these all look like a skip of ~ 0.06
+NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
+                          -2: 1.1215356033380033,
+                          -3: 1.1834835840896631,
+                          -4: 1.253228360845465,
+                          -5: 1.3310440397149297,
+                          -6: 1.4039714929646099,
+                          -7: 1.5028019735639886,
+                          -8: 1.5766735700797954}
 
 QUANTIZATION_BITS = 12
 QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
@@ -31,12 +32,13 @@ DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
 S_MIDRISE = -U + DELTA_S / 2 + np.arange(QUANTIZATION_LEVELS) * DELTA_S
 S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS) * DELTA_S
 
+RESAMPLE_MULTIPLIER = 2
+ZERO_ORDER_HOLD_MULTIPLIER = 4
+
 INPUT_SAMPLE_RATE = 96000
 OUTPUT_SAMPLE_RATE = 48000
-
-ZERO_ORDER_HOLD_MULTIPLIER = 4
-RESAMPLE_MULTIPLIER = 2
 TARGET_SAMPLE_RATE = 26040
+
 TARGET_SAMPLE_RATE_MULTIPLE = TARGET_SAMPLE_RATE * RESAMPLE_MULTIPLIER
 
 # map these if they grow any longer
@@ -46,11 +48,16 @@ RESAMPLE_METHODS = ['librosa', 'scipy']
 
 def manual_pitch(x, st):
     if (0 > st >= -8):
-        t = ST_NEGATIVE[st]
-    elif (st >= 0):
-        t = ST_POSITIVE ** -st
-    else:
-        t = ST_POSITIVE ** (-st + 8)  # TODO: guess, revisit
+        t = NEGATIVE_TUNING_RATIOS[st]
+    elif st > 0:
+        t = POSITIVE_TUNING_RATIO ** -st
+    elif st == 0:  # no change
+        return x
+    else:  # -8 > st: extrapolate, loses a few points of percision for some reason
+        f = sp.interpolate.interp1d(list(NEGATIVE_TUNING_RATIOS.keys()),
+                                    list(NEGATIVE_TUNING_RATIOS.values()),
+                                    fill_value='extrapolate')
+        t = f(st)
 
     n = int(np.round(len(x) * t))
     # - 1 accounts for rounding issues
@@ -80,7 +87,7 @@ def filter_output(x):
 
 
 def pyrb_pitch(y, st):
-    t = ST_POSITIVE ** st  # close enough to og vals? maybe revisit
+    t = POSITIVE_TUNING_RATIO ** st  # revisit when replacing pyrb
     pitched = pyrb.pitch_shift(y, TARGET_SAMPLE_RATE, n_steps=st)
     return time_stretch(pitched, t)
 
@@ -129,6 +136,7 @@ def sar_quantize(x):
     return rescaled
 
 
+# interp1d type='nearest' might be a faster way
 def quantize(x, S):
 
     X = x.reshape((-1, 1)).astype(np.float32)
@@ -154,6 +162,7 @@ def quantize(x, S):
 def digitize(x, S):
     y = np.digitize(x.flatten(), S.flatten())
     return y
+
 
 # TODO
 # - requirements
