@@ -1,6 +1,9 @@
 # pitcher
 digital emulation of the SP-12 & SP-1200 signal chain in a python script
-Based on: https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
+
+Based on: [Physical and Behavioral Circuit Modeling of the SP-12
+Sampler](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
+
 useful for resampling & pitching audio before importing into a DAW
 
 ### usage:
