@@ -3,12 +3,8 @@ import numpy as np
 import scipy as sp
 import audiofile as af
 
-from librosa.effects import time_stretch
 from librosa.core import resample
 from librosa import load
-
-from numba import jit
-from pyrubberband import pyrb
 
 POSITIVE_TUNING_RATIO = 1.02930223664
 NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
@@ -36,11 +32,10 @@ OUTPUT_SR = 48000
 TARGET_SR = 26040
 TARGET_SR_MULTIPLE = TARGET_SR * RESAMPLE_MULTIPLIER
 
-PITCH_METHODS = ['manual', 'rubberband']
 RESAMPLE_METHODS = ['librosa', 'scipy']
 
 
-def manual_pitch(x, st):
+def adjust_pitch(x, st):
     if (0 > st >= -8):
         t = NEGATIVE_TUNING_RATIOS[st]
     elif st > 0:
@@ -55,8 +50,7 @@ def manual_pitch(x, st):
 
     n = int(np.round(len(x) * t))
     r = np.linspace(0, len(x) - 1, n).round().astype(np.int32)
-    pitched = [x[r[e]] for e in range(n-1)]  # could yield here
-    return pitched
+    return [x[r[e]] for e in range(n-1)]  # could yield here
 
 
 def filter_input(x):
@@ -76,12 +70,6 @@ def filter_output(x):
     sos = sp.signal.tf2sos(f, [1.0])
     y = sp.signal.sosfilt(sos, x)
     return y
-
-
-def pyrb_pitch(y, st):
-    t = POSITIVE_TUNING_RATIO ** st  # revisit when replacing pyrb
-    pitched = pyrb.pitch_shift(y, TARGET_SR, n_steps=st)
-    return time_stretch(pitched, t)
 
 
 def librosa_resample(y):
@@ -115,8 +103,6 @@ def nearest_values(x, y):
 # however, when plotted the scaled amplitude of quantized audio is
 # noticeably higher than the original
 def quantize(x, S):
-    x = np.asfortranarray(x)
-    S = np.asfortranarray(S)
     y = nearest_values(x, S)
     quantized = S.flat[y].reshape(x.shape)
     return quantized
@@ -130,11 +116,11 @@ def digitize(x, S):
 
 
 # TODO
-# - requirements
-# - readme
 # - logging
+# - add cli option for quantization bits
+# - optionally preserve stereo channels throughout processing
 # - impletement optional vcf? (ring moog) good description in slides
-# - improve input filter fit
+# - improve input anti aliasing filter fit
 # - replace or delete pyrb
 # - replace librosa if there is a module with better performance, maybe essentia?
 # - supress librosa numba warning
@@ -142,35 +128,34 @@ def digitize(x, S):
 # NOTES:
 # - could use sosfiltfilt for zero phase filtering, but it doubles filter order
 
-# Based on:
+# Based one
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
 
 # signal path: input filter > sample & hold > 12 bit quantizer > pitching
 # & decay > zero order hold > optional eq filters > output filter
 
 @click.command()
-@click.option('--file', required=True)
 @click.option('--st', default=0, help='number of semitones to shift')
-@click.option('--pitch-method', default='manual')
-@click.option('--resample-method', default='scipy')
+@click.option('--normalize', is_flag=True, default=False)
+@click.option('--input-file', required=True)
 @click.option('--output-file', required=True)
+@click.option('--resample-fn', default='scipy')
+@click.option('--skip-quantize', is_flag=True, default=False)
 @click.option('--skip-input-filter', is_flag=True, default=False)
 @click.option('--skip-output-filter', is_flag=True, default=False)
-@click.option('--skip-quantize', is_flag=True, default=False)
-@click.option('--normalize', is_flag=True, default=False)
-def pitch(file, st, pitch_method, resample_method, output_file,
-          skip_input_filter, skip_output_filter, skip_quantize,
-          normalize):
+def pitch(st, normalize, input_file, output_file, resample_fn,
+          skip_quantize, skip_input_filter, skip_output_filter):
 
-    y, s = load(file, sr=INPUT_SR)
+    y, s = load(input_file, sr=INPUT_SR)
 
     if not skip_input_filter:
         y = filter_input(y)
 
-    if resample_method in RESAMPLE_METHODS:
-        if resample_method == RESAMPLE_METHODS[0]:
-            resampled = librosa_resample(y)  # should specify SR's here not in function
-        elif resample_method == RESAMPLE_METHODS[1]:
+    # TODO: should indicate sample rates here rather than bury in function
+    if resample_fn in RESAMPLE_METHODS:
+        if resample_fn == RESAMPLE_METHODS[0]:
+            resampled = librosa_resample(y)
+        elif resample_fn == RESAMPLE_METHODS[1]:
             resampled = scipy_resample(y)
     else:
         raise ValueError('invalid resample method, '
@@ -178,18 +163,11 @@ def pitch(file, st, pitch_method, resample_method, output_file,
 
     if not skip_quantize:
         # simulate analog -> digital conversion
-        resampled = quantize(resampled, S_MIDRISE)  # TODO: midtread or midrise?
+        resampled = quantize(resampled, S_MIDRISE)  # TODO: midtread/midrise?
 
-    if pitch_method in PITCH_METHODS:
-        if pitch_method == PITCH_METHODS[0]:
-            pitched = manual_pitch(resampled, st)
-        elif pitch_method == PITCH_METHODS[1]:
-            pitched = pyrb_pitch(resampled, st)
-    else:
-        raise ValueError('invalid pitch method, '
-                         f'valid methods are {PITCH_METHODS}')
+    pitched = adjust_pitch(resampled, st)
 
-    # oversample again (default factor of 4)
+    # oversample again (default factor of 4) to simulate ZOH
     # TODO: retest output, test freq aliased sinc fn
     post_zero_order_hold = zero_order_hold(pitched)
 
