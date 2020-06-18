@@ -33,7 +33,6 @@ python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 ### TODO:
 - logging
 - fix saving to mp3 issue, fork audiofile
-- add click option for quantization bits
 - optionally preserve stereo channels throughout processing
 - optional vcf (ring moog) good description in slides
 - time_shift/no time_shift option
