@@ -14,14 +14,6 @@ from librosa.core import resample
 from librosa import load
 
 
-# https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
-U = 1  # max amplitude to quantize
-QUANTIZATION_BITS = 12
-QUANTIZATION_LEVELS = 2 ** QUANTIZATION_BITS
-DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
-S_MIDRISE = -U + DELTA_S / 2 + np.arange(QUANTIZATION_LEVELS) * DELTA_S
-S_MIDTREAD = -U + np.arange(QUANTIZATION_LEVELS) * DELTA_S
-
 RESAMPLE_MULTIPLIER = 2
 ZOH_MULTIPLIER = 4
 
@@ -29,8 +21,6 @@ INPUT_SR = 96000
 OUTPUT_SR = 48000
 TARGET_SR = 26040
 TARGET_SR_MULTIPLE = TARGET_SR * RESAMPLE_MULTIPLIER
-
-RESAMPLE_METHODS = ['librosa', 'scipy']
 
 POSITIVE_TUNING_RATIO = 1.02930223664
 NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
@@ -41,6 +31,16 @@ NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
                           -6: 1.4039714929646099,
                           -7: 1.5028019735639886,
                           -8: 1.5766735700797954}
+
+
+def calculate_quantize_function(quantization_bits):
+    # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
+    U = 1  # max amplitude to quantize
+    QUANTIZATION_LEVELS = 2 ** quantization_bits
+    DELTA_S = 2 * U / QUANTIZATION_LEVELS  # level distance
+    s_midrise = -U + DELTA_S / 2 + np.arange(QUANTIZATION_LEVELS) * DELTA_S
+    s_midtread = -U + np.arange(QUANTIZATION_LEVELS) * DELTA_S
+    return s_midrise, s_midtread
 
 
 def adjust_pitch(x, st):
@@ -110,7 +110,7 @@ def nearest_values(x, y):
 
 # no audible difference after audacity invert test @ 12 bits
 # however, when plotted the scaled amplitude of quantized audio is
-# noticeably higher than the original
+# noticeably higher than the original, leaving for now
 def quantize(x, S):
     y = nearest_values(x, S)
     quantized = S.flat[y].reshape(x.shape)
@@ -121,32 +121,27 @@ def quantize(x, S):
 @click.option('--st', default=0, help='number of semitones to shift')
 @click.option('--input-file', required=True)
 @click.option('--output-file', required=True)
-@click.option('--resample-fn', default='scipy')
+@click.option('--quantize-bits', default=12, help='bit rate of quantized output')
 @click.option('--skip-quantize', is_flag=True, default=False)
 @click.option('--skip-normalize', is_flag=True, default=False)
 @click.option('--skip-input-filter', is_flag=True, default=False)
 @click.option('--skip-output-filter', is_flag=True, default=False)
-def pitch(st, input_file, output_file, resample_fn, skip_normalize,
+def pitch(st, input_file, output_file, quantize_bits, skip_normalize,
           skip_quantize, skip_input_filter, skip_output_filter):
 
     y, s = load(input_file, sr=INPUT_SR)
+
+    midrise, midtread = calculate_quantize_function(quantize_bits)
 
     if not skip_input_filter:
         y = filter_input(y)
 
     # TODO: should pass sample rates here rather than bury in function
-    if resample_fn in RESAMPLE_METHODS:
-        if resample_fn == RESAMPLE_METHODS[0]:
-            resampled = librosa_resample(y)
-        elif resample_fn == RESAMPLE_METHODS[1]:
-            resampled = scipy_resample(y)
-    else:
-        raise ValueError('invalid resample method, '
-                         f'valid methods are {RESAMPLE_METHODS}')
+    resampled = scipy_resample(y)
 
     if not skip_quantize:
         # simulate analog -> digital conversion
-        resampled = quantize(resampled, S_MIDRISE)  # TODO: midtread/midrise option?
+        resampled = quantize(resampled, midtread)  # TODO: midtread/midrise option?
 
     pitched = adjust_pitch(resampled, st)
 
