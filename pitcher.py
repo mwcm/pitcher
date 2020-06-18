@@ -47,7 +47,7 @@ def adjust_pitch(x, st):
         t = POSITIVE_TUNING_RATIO ** -st
     elif st == 0:  # no change
         return x
-    else:  # -8 > st: extrapolate, seems to lose a few points of percision?
+    else:  # -8 > st: extrapolate, seems to lose a few points of precision?
         f = sp.interpolate.interp1d(list(NEGATIVE_TUNING_RATIOS.keys()),
                                     list(NEGATIVE_TUNING_RATIOS.values()),
                                     fill_value='extrapolate')
