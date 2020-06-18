@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 # Pitcher v 0.1
 # Copyright (C) 2020 Morgan Mitchell
+# Based on: Physical and Behavioral Circuit Modeling of the SP-12, DT Yeh, 2007
+# https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
+
 
 import click
 import numpy as np
@@ -67,6 +70,7 @@ def filter_input(x):
     return y
 
 
+# could use sosfiltfilt for zero phase filtering, but it doubles filter order
 def filter_output(x):
     freq = np.array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
     att = np.array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
@@ -112,22 +116,6 @@ def quantize(x, S):
     quantized = S.flat[y].reshape(x.shape)
     return quantized
 
-
-# TODO
-# - logging
-# - add cli option for quantization bits
-# - optionally preserve stereo channels throughout processing
-# - optional vcf (ring moog) good description in slides
-# - time_shift/no time_shift option
-# - replace librosa if there is a module with better performance, maybe essentia?
-# - improve input anti aliasing filter fit?
-
-# NOTES:
-# - could use sosfiltfilt for zero phase filtering, but it doubles filter order
-
-
-# signal path: input filter > sample & hold > 12 bit quantizer > pitching
-# & decay > zero order hold > optional eq filters > output filter
 
 @click.command()
 @click.option('--st', default=0, help='number of semitones to shift')

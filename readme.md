@@ -5,7 +5,7 @@ Emulation of the SP-12 & SP-1200 signal chain in a Python script
 Written and tested in Python v3.7.7
 
 Based on: [Physical and Behavioral Circuit Modeling of the SP-12
-Sampler](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
+Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 
 Useful for re-sampling & pitching audio to get that "SP-1200 sound" before importing into a DAW
 
@@ -35,3 +35,12 @@ python pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 --skip-input-filter  - optionally skip input anti aliasing filter, flag
 --skip-output-filter - optionally skip output equalization filter, flag
 ```
+
+### TODO:
+- logging
+- add click option for quantization bits
+- optionally preserve stereo channels throughout processing
+- optional vcf (ring moog) good description in slides
+- time_shift/no time_shift option
+- replace librosa if there is a module with better performance, maybe essentia?
+- improve input anti aliasing filter fit?
