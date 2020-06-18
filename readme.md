@@ -1,7 +1,7 @@
 # Pitcher.py
 - Emulation of the SP-12 & SP-1200 signal chain
 - Written and tested in Python v3.7.7
-- Based on: [Physical and Behavioral Circuit Modeling of the SP-12
+- Based on [Physical and Behavioral Circuit Modeling of the SP-12
 Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 - Audio examples [here](https://tinyurl.com/yckcmhb2)
 
