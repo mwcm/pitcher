@@ -34,7 +34,7 @@ python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 - logging
 - fix saving to mp3 issue, fork audiofile
 - optionally preserve stereo channels throughout processing
-- optional vcf (ring moog) good description in slides
+- optional vcf (moog ring) good description in slides
 - time_shift/no time_shift option
 - replace librosa if there is a module with better performance, maybe essentia?
 - improve input anti aliasing filter fit?
