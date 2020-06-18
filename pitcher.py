@@ -119,14 +119,14 @@ def quantize(x, S):
 
 @click.command()
 @click.option('--st', default=0, help='number of semitones to shift')
-@click.option('--normalize', is_flag=True, default=False)
 @click.option('--input-file', required=True)
 @click.option('--output-file', required=True)
 @click.option('--resample-fn', default='scipy')
 @click.option('--skip-quantize', is_flag=True, default=False)
+@click.option('--skip-normalize', is_flag=True, default=False)
 @click.option('--skip-input-filter', is_flag=True, default=False)
 @click.option('--skip-output-filter', is_flag=True, default=False)
-def pitch(st, normalize, input_file, output_file, resample_fn,
+def pitch(st, input_file, output_file, resample_fn, skip_normalize,
           skip_quantize, skip_input_filter, skip_output_filter):
 
     y, s = load(input_file, sr=INPUT_SR)
@@ -161,7 +161,7 @@ def pitch(st, normalize, input_file, output_file, resample_fn,
     if not skip_output_filter:
         output = filter_output(output)  # eq filter
 
-    af.write(output_file, output, OUTPUT_SR, '16bit', normalize)
+    af.write(output_file, output, OUTPUT_SR, '16bit', not skip_normalize)
 
 
 if __name__ == '__main__':
