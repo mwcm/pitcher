@@ -7,7 +7,7 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12sli
 
 ### Installation
 ```
-1. Use git to clone this repo, or download it as a ZIP using the "Clone or download" button above & then unzip
+1. Use git to clone this repo, or download it as a ZIP using the "Clone or download" button above & unzip
 2. Open your terminal of choice
 3. cd to the new pitcher directory
 4. pip3 install -r ./requirements.txt
