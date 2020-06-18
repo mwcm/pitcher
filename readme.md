@@ -16,7 +16,7 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12sli
 
 ### Usage:
 ```
-python pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
+python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 ```
 
 ### Options:
