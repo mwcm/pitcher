@@ -1,4 +1,4 @@
-# Pitcher
+# Pitcher.py
 - Emulation of the SP-12 & SP-1200 signal chain in a Python script
 - Written and tested in Python v3.7.7
 - Based on: [Physical and Behavioral Circuit Modeling of the SP-12
