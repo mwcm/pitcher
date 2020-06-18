@@ -113,13 +113,6 @@ def quantize(x, S):
     return quantized
 
 
-# same issue as SAR, output needs to be rescaled
-# we'd like output to be the same scale as input, just quantized
-def digitize(x, S):
-    y = np.digitize(x.flatten(), S.flatten())
-    return y
-
-
 # TODO
 # - logging
 # - add cli option for quantization bits
@@ -153,7 +146,7 @@ def pitch(st, normalize, input_file, output_file, resample_fn,
     if not skip_input_filter:
         y = filter_input(y)
 
-    # TODO: should indicate sample rates here rather than bury in function
+    # TODO: should pass sample rates here rather than bury in function
     if resample_fn in RESAMPLE_METHODS:
         if resample_fn == RESAMPLE_METHODS[0]:
             resampled = librosa_resample(y)
@@ -165,20 +158,20 @@ def pitch(st, normalize, input_file, output_file, resample_fn,
 
     if not skip_quantize:
         # simulate analog -> digital conversion
-        resampled = quantize(resampled, S_MIDRISE)  # TODO: midtread/midrise?
+        resampled = quantize(resampled, S_MIDRISE)  # TODO: midtread/midrise option?
 
     pitched = adjust_pitch(resampled, st)
 
     # oversample again (default factor of 4) to simulate ZOH
-    # TODO: retest output, test freq aliased sinc fn
     post_zero_order_hold = zero_order_hold(pitched)
+    # TODO: retest output against freq aliased sinc fn
 
     # give option use scipy resample here?
     output = resample(np.asfortranarray(post_zero_order_hold),
                       TARGET_SR * ZOH_MULTIPLIER, OUTPUT_SR)
 
     if not skip_output_filter:
-        output = filter_output(output)  # equalization filter
+        output = filter_output(output)  # eq filter
 
     af.write(output_file, output, OUTPUT_SR, '16bit', normalize)
 
