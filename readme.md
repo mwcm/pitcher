@@ -4,7 +4,7 @@
 - Based on: [Physical and Behavioral Circuit Modeling of the SP-12
 Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 - Audio examples [here](https://tinyurl.com/yckcmhb2)
-Useful for re-sampling & pitching audio to get that "SP-1200 sound" before importing into a DAW
+- Useful for re-sampling & pitching audio to get that "SP-1200 sound" before importing into a DAW
 
 ### Installation
 ```
