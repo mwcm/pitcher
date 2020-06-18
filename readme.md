@@ -7,8 +7,7 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12sli
 
 ### Installation
 ```
-1. Use git to clone this repo, or download it as a ZIP using the "Clone or
-   download" button above & then unzip
+1. Use git to clone this repo, or download it as a ZIP using the "Clone or download" button above & unzip
 2. Open your terminal of choice
 3. cd to the new pitcher directory
 4. pip3 install -r ./requirements.txt
@@ -16,7 +15,7 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12sli
 
 ### Usage:
 ```
-python pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
+python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 ```
 
 ### Options:
@@ -34,9 +33,8 @@ python pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 ### TODO:
 - logging
 - fix saving to mp3 issue, fork audiofile
-- add click option for quantization bits
 - optionally preserve stereo channels throughout processing
-- optional vcf (ring moog) good description in slides
+- optional vcf (moog ring) good description in slides
 - time_shift/no time_shift option
 - replace librosa if there is a module with better performance, maybe essentia?
-- improve input anti aliasing filter fit?
+- improve high end input anti aliasing filter fit?
