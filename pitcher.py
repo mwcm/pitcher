@@ -1,3 +1,7 @@
+#! /usr/bin/env python3
+# Pitcher v 0.1
+# Copyright (C) 2020 Morgan Mitchell
+
 import click
 import numpy as np
 import scipy as sp
@@ -6,15 +10,6 @@ import audiofile as af
 from librosa.core import resample
 from librosa import load
 
-POSITIVE_TUNING_RATIO = 1.02930223664
-NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
-                          -2: 1.1215356033380033,
-                          -3: 1.1834835840896631,
-                          -4: 1.253228360845465,
-                          -5: 1.3310440397149297,
-                          -6: 1.4039714929646099,
-                          -7: 1.5028019735639886,
-                          -8: 1.5766735700797954}
 
 # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
 U = 1  # max amplitude to quantize
@@ -33,6 +28,16 @@ TARGET_SR = 26040
 TARGET_SR_MULTIPLE = TARGET_SR * RESAMPLE_MULTIPLIER
 
 RESAMPLE_METHODS = ['librosa', 'scipy']
+
+POSITIVE_TUNING_RATIO = 1.02930223664
+NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
+                          -2: 1.1215356033380033,
+                          -3: 1.1834835840896631,
+                          -4: 1.253228360845465,
+                          -5: 1.3310440397149297,
+                          -6: 1.4039714929646099,
+                          -7: 1.5028019735639886,
+                          -8: 1.5766735700797954}
 
 
 def adjust_pitch(x, st):
@@ -119,17 +124,14 @@ def digitize(x, S):
 # - logging
 # - add cli option for quantization bits
 # - optionally preserve stereo channels throughout processing
-# - impletement optional vcf? (ring moog) good description in slides
-# - improve input anti aliasing filter fit
-# - replace or delete pyrb
+# - optional vcf (ring moog) good description in slides
+# - time_shift/no time_shift option
 # - replace librosa if there is a module with better performance, maybe essentia?
-# - supress librosa numba warning
+# - improve input anti aliasing filter fit?
 
 # NOTES:
 # - could use sosfiltfilt for zero phase filtering, but it doubles filter order
 
-# Based one
-# https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
 
 # signal path: input filter > sample & hold > 12 bit quantizer > pitching
 # & decay > zero order hold > optional eq filters > output filter
