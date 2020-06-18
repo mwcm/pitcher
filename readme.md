@@ -37,4 +37,4 @@ python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 - optional vcf (moog ring) good description in slides
 - time_shift/no time_shift option
 - replace librosa if there is a module with better performance, maybe essentia?
-- improve input anti aliasing filter fit?
+- improve high end input anti aliasing filter fit?
