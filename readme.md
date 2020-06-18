@@ -30,7 +30,7 @@ python3 pitcher.py --file ./input.wav --st -4 --output-file ./output.wav
 --skip-output-filter - skip output equalization filter, flag
 ```
 
-If you find this project useful please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838), [BLM - TO](https://blacklivesmatter.ca/donate/) or [buying me a beer 🍺](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=TDN3MWL4EF4HU&currency_code=CAD&source=url)
+If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838), [BLM - TO](https://blacklivesmatter.ca/donate/), or [buying me a beer 🍺](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=TDN3MWL4EF4HU&currency_code=CAD&source=url)
 
 
 ### TODO:
