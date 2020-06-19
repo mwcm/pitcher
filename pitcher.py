@@ -11,8 +11,8 @@ import numpy as np
 import scipy as sp
 import audiofile as af
 
-from librosa.core import resample
 from librosa import load
+from librosa.core import resample
 
 ZOH_MULTIPLIER = 4
 RESAMPLE_MULTIPLIER = 2
@@ -31,7 +31,11 @@ NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
                           -7: 1.5028019735639886,
                           -8: 1.5766735700797954}
 
-valid_log_levels = ['INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL']
+log_levels = {'INFO':     logging.INFO,
+              'DEBUG':    logging.DEBUG,
+              'WARNING':  logging.WARNING,
+              'ERROR':    logging.ERROR,
+              'CRITICAL': logging.CRITICAL}
 
 
 def calc_quantize_function(quantize_bits, log):
@@ -125,7 +129,7 @@ def nearest_values(x, y):
 # however, when plotted the scaled amplitude of quantized audio is
 # noticeably higher than the original, leaving for now
 def quantize(x, S, bits, log):
-    log.info('quantizing audio @ {bits} bits')
+    log.info(f'quantizing audio @ {bits} bits')
     y = nearest_values(x, S)
     quantized = S.flat[y].reshape(x.shape)
     log.info('done quantizing')
@@ -146,11 +150,15 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
           skip_quantize, skip_input_filter, skip_output_filter):
 
     log = logging.getLogger(__name__)
+    sh = logging.StreamHandler()
+    sh.setFormatter(logging.Formatter('%(levelname)-8s %(message)s'))
+    log.addHandler(sh)
 
-    if (not log_level) or (log_level.upper() not in valid_log_levels):
-        log_level = 'INFO'
+    valid_levels = list(log_levels.keys())
+    if (not log_level) or (log_level.upper() not in valid_levels):
         log.warn(f'Invalid log-level: "{log_level}", log-level set to "INFO", '
-                 f'valid log levels are {valid_log_levels}')
+                 f'valid log levels are {valid_levels}')
+        log_level = 'INFO'
 
     log.setLevel(log_level)
 
@@ -163,7 +171,7 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
     if skip_input_filter:
         log.info('skipping input anti aliasing filter')
     else:
-        y = filter_input(y)
+        y = filter_input(y, log)
 
     resampled = scipy_resample(y, INPUT_SR, TARGET_SR, RESAMPLE_MULTIPLIER, log)
 
@@ -178,7 +186,7 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
 
     # oversample again (default factor of 4) to simulate ZOH
     # TODO: retest output against freq aliased sinc fn
-    post_zero_order_hold = zero_order_hold(pitched, log)
+    post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER, log)
 
     # TODO: try using scipy resample here?
     output = resample(np.asfortranarray(post_zero_order_hold),
@@ -189,8 +197,8 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
     else:
         output = filter_output(output, log)  # eq filter
 
-    log.info(f'writing {output_file}, at sample rate: {OUTPUT_SR} '
-             f'with skip_normalize set to: {skip_normalize}')
+    log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
+             f'with skip_normalize set to {skip_normalize}')
 
     af.write(output_file, output, OUTPUT_SR, '16bit', not skip_normalize)
 
