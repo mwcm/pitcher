@@ -5,6 +5,7 @@
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
 
 
+import logging
 import click
 import numpy as np
 import scipy as sp
@@ -12,7 +13,6 @@ import audiofile as af
 
 from librosa.core import resample
 from librosa import load
-
 
 RESAMPLE_MULTIPLIER = 2
 ZOH_MULTIPLIER = 4
@@ -31,6 +31,8 @@ NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
                           -6: 1.4039714929646099,
                           -7: 1.5028019735639886,
                           -8: 1.5766735700797954}
+
+valid_log_levels = ['INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL']
 
 
 def calculate_quantize_function(quantization_bits):
@@ -119,6 +121,7 @@ def quantize(x, S):
 
 @click.command()
 @click.option('--st', default=0, help='number of semitones to shift')
+@click.option('--log-level', default='INFO')
 @click.option('--input-file', required=True)
 @click.option('--output-file', required=True)
 @click.option('--quantize-bits', default=12, help='bit rate of quantized output')
@@ -126,18 +129,37 @@ def quantize(x, S):
 @click.option('--skip-normalize', is_flag=True, default=False)
 @click.option('--skip-input-filter', is_flag=True, default=False)
 @click.option('--skip-output-filter', is_flag=True, default=False)
-def pitch(st, input_file, output_file, quantize_bits, skip_normalize,
+def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
           skip_quantize, skip_input_filter, skip_output_filter):
 
-    y, s = load(input_file, sr=INPUT_SR)
+    log = logging.getLogger(__name__)
 
+    if (not log_level) or (log_level.upper() not in valid_log_levels):
+        log_level = 'INFO'
+        log.warn(f'Invalid log-level: "{log_level}", log-level set to "INFO",'
+                 f' valid log levels are {valid_log_levels}')
+
+    log.setLevel(log_level)
+
+    log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
+    y, s = load(input_file, sr=INPUT_SR)
+    log.info('done loading')
+
+    log.info(f'constructing quantize fn with {quantize_bits} quantize bits')
     midrise, midtread = calculate_quantize_function(quantize_bits)
+    log.info('done constructing quantize fn')
 
     if not skip_input_filter:
+        log.info('applying anti aliasing filter')
         y = filter_input(y)
+        log.info('done applying anti aliasing filter')
+    else:
+        log.info('skipping input anti aliasing filter')
 
     # TODO: should pass sample rates here rather than bury in function
+    log.info(f'resampling audio to sample rate of TODO')
     resampled = scipy_resample(y)
+    log.info('done resampling audio')
 
     if not skip_quantize:
         # simulate analog -> digital conversion
@@ -146,8 +168,8 @@ def pitch(st, input_file, output_file, quantize_bits, skip_normalize,
     pitched = adjust_pitch(resampled, st)
 
     # oversample again (default factor of 4) to simulate ZOH
-    post_zero_order_hold = zero_order_hold(pitched)
     # TODO: retest output against freq aliased sinc fn
+    post_zero_order_hold = zero_order_hold(pitched)
 
     # give option use scipy resample here?
     output = resample(np.asfortranarray(post_zero_order_hold),
