@@ -34,7 +34,6 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### TODO:
-- add saving to mp3!
 - optionally preserve stereo channels throughout processing
 - optional vcf (moog ring) good description in slides
 - time_shift/no time_shift option

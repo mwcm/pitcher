@@ -13,6 +13,7 @@ import audiofile as af
 
 from librosa import load
 from librosa.core import resample
+from pydub import AudioSegment
 
 ZOH_MULTIPLIER = 4
 RESAMPLE_MULTIPLIER = 2
@@ -113,7 +114,7 @@ def zero_order_hold(y, zoh_multiplier, log):
     log.info(f'applying zero order hold of {zoh_multiplier}')
     # intentionally oversample by repeating each sample 4 times
     # could also try a freq aliased sinc filter
-    zoh_applied = np.repeat(y, zoh_multiplier)
+    zoh_applied = np.repeat(y, zoh_multiplier).astype(np.float32)
     log.info('done applying zero order hold')
     return zoh_applied
 
@@ -134,6 +135,19 @@ def quantize(x, S, bits, log):
     quantized = S.flat[y].reshape(x.shape)
     log.info('done quantizing')
     return quantized
+
+
+# https://stackoverflow.com/questions/53633177/how-to-read-a-mp3-audio-file-into-a-numpy-array-save-a-numpy-array-to-mp3
+def write_mp3(f, x, sr, normalized=False):
+    """numpy array to MP3"""
+    channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
+    if normalized:  # normalized array - each item should be a float in [-1, 1)
+        y = np.int16(x * 2 ** 15)
+    else:
+        y = np.int16(x)
+    song = AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
+    song.export(f, format="mp3", bitrate="320k")
+    return
 
 
 @click.command()
@@ -200,7 +214,10 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
     log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
              f'with skip_normalize set to {skip_normalize}')
 
-    af.write(output_file, output, OUTPUT_SR, '16bit', not skip_normalize)
+    if '.mp3' in output_file:
+        write_mp3(output_file, output, OUTPUT_SR, not skip_normalize)
+    else:
+        af.write(output_file, output, OUTPUT_SR, '16bit', not skip_normalize)
 
     log.info(f'done! output_file at: {output_file}')
     return
