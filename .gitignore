@@ -2,6 +2,7 @@
 *.mp3
 *.ogg
 *.wav
+*.asd
 *.js
 .DS_Store
 

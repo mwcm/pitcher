@@ -174,6 +174,7 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
                  f'valid log levels are {valid_levels}')
         log_level = 'INFO'
 
+    log_level = log_levels[log_level]
     log.setLevel(log_level)
 
     log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
