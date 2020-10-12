@@ -34,6 +34,7 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### TODO:
+- append wav if no file type, breaks audiofile save
 - optionally preserve stereo channels throughout processing
 - optional vcf (moog ring) good description in slides
 - time_shift/no time_shift option
