@@ -21,23 +21,23 @@ python pitcher.py --input-file ./input.wav --st -4 --output-file ./output.wav
 
 ### Options:
 ```
---st                 - # semitones to shift pitch by,   int,    required
---input-file         - path to input file,              string, required
---output-file        - path to output file,             string, required
---quantize-bits      - bit rate of quantized output,    int,    default 12
---skip-quantize      - skip simulation of ADC quantize, flag
---skip-normalize     - skip output normalization,       flag
---skip-input-filter  - skip input anti aliasing filter, flag
---skip-output-filter - skip output equalization filter, flag
+--st                 - # semitones to shift pitch by,   		int,    required
+--input-file         - path to input file,              		string, required
+--output-file        - path to output file,             		string, required
+--quantize-bits      - bit rate of quantized output,    		int,    default 12
+--time-shift         - custom time shift ratio to apply,		float,  default 0
+--skip-quantize      - skip simulation of ADC quantize, 		flag
+--skip-normalize     - skip output normalization,       		flag
+--skip-input-filter  - skip input anti aliasing filter, 		flag
+--skip-output-filter - skip output equalization filter, 		flag
+--skip-time-shift    - skip time sfhit inherent to pitching algorithm,	flag
 ```
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
 
 
 ### TODO:
-- append wav if no file type, breaks audiofile save
 - optionally preserve stereo channels throughout processing
 - optional vcf (moog ring) good description in slides
-- time_shift/no time_shift option
 - replace librosa if there is a module with better performance, maybe essentia?
 - improve high end input anti aliasing filter fit?

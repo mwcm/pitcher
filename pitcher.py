@@ -11,9 +11,10 @@ import numpy as np
 import scipy as sp
 import audiofile as af
 
+from pydub import AudioSegment
 from librosa import load
 from librosa.core import resample
-from pydub import AudioSegment
+from librosa.effects import time_stretch
 
 ZOH_MULTIPLIER = 4
 RESAMPLE_MULTIPLIER = 2
@@ -51,8 +52,9 @@ def calc_quantize_function(quantize_bits, log):
     return s_midrise, s_midtread
 
 
-def adjust_pitch(x, st, log):
+def adjust_pitch(x, st, skip_time_stretch, log):
     log.info(f'adjusting audio pitch by {st} semitones')
+    t = 0
     if (0 > st >= -8):
         t = NEGATIVE_TUNING_RATIOS[st]
     elif st > 0:
@@ -60,15 +62,19 @@ def adjust_pitch(x, st, log):
     elif st == 0:  # no change
         return x
     else:  # -8 > st: extrapolate, seems to lose a few points of precision?
-        f = sp.interpolate.interp1d(list(NEGATIVE_TUNING_RATIOS.keys()),
-                                    list(NEGATIVE_TUNING_RATIOS.values()),
-                                    fill_value='extrapolate')
+        f = sp.interpolate.interp1d(
+                list(NEGATIVE_TUNING_RATIOS.keys()),
+                list(NEGATIVE_TUNING_RATIOS.values()),
+                fill_value='extrapolate'
+        )
         t = f(st)
 
     n = int(np.round(len(x) * t))
     r = np.linspace(0, len(x) - 1, n).round().astype(np.int32)
-    pitched = [x[r[e]] for e in range(n-1)]  # could yield here instead
+    pitched = [x[r[e]] for e in range(n-1)]  # could yield instead
+    pitched = np.array(pitched)
     log.info('done pitching audio')
+
     return pitched
 
 
@@ -160,8 +166,11 @@ def write_mp3(f, x, sr, normalized=False):
 @click.option('--skip-normalize', is_flag=True, default=False)
 @click.option('--skip-input-filter', is_flag=True, default=False)
 @click.option('--skip-output-filter', is_flag=True, default=False)
+@click.option('--skip-time-stretch', is_flag=True, default=False)
+@click.option('--custom-time-stretch', default=0, type=float)
 def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
-          skip_quantize, skip_input_filter, skip_output_filter):
+          skip_quantize, skip_input_filter, skip_output_filter, skip_time_stretch,
+          custom_time_stretch):
 
     log = logging.getLogger(__name__)
     sh = logging.StreamHandler()
@@ -197,7 +206,17 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
         # TODO: midtread/midrise option?
         resampled = quantize(resampled, midtread, quantize_bits, log)
 
-    pitched = adjust_pitch(resampled, st, log)
+
+    pitched = adjust_pitch(resampled, st, skip_time_stretch, log)
+
+    if skip_time_stretch:
+        ratio = len(pitched) / len(resampled)
+        log.info('\"skipping\" time stretch: stretching back to original length...')
+        pitched = time_stretch(pitched, ratio)
+
+    if custom_time_stretch:
+        log.info('running custom time stretch of ratio: {custom_time_stretch}')
+        pitched = time_stretch(pitched, custom_time_stretch)
 
     # oversample again (default factor of 4) to simulate ZOH
     # TODO: retest output against freq aliased sinc fn
@@ -218,6 +237,7 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
     if '.mp3' in output_file:
         write_mp3(output_file, output, OUTPUT_SR, not skip_normalize)
     else:
+        output_file = output_file
         af.write(output_file, output, OUTPUT_SR, '16bit', not skip_normalize)
 
     log.info(f'done! output_file at: {output_file}')
