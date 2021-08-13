@@ -10,6 +10,7 @@ import click
 import numpy as np
 import scipy as sp
 import audiofile as af
+import tkinter as tk
 
 from pydub import AudioSegment
 from librosa import load
@@ -157,21 +158,21 @@ def write_mp3(f, x, sr, normalized=False):
     return
 
 
-@click.command()
-@click.option('--st', default=0, help='number of semitones to shift')
-@click.option('--log-level', default='INFO')
-@click.option('--input-file', required=True)
-@click.option('--output-file', required=True)
-@click.option('--quantize-bits', default=12, help='bit rate of quantized output')
-@click.option('--skip-quantize', is_flag=True, default=False)
-@click.option('--skip-normalize', is_flag=True, default=False)
-@click.option('--skip-input-filter', is_flag=True, default=False)
-@click.option('--skip-output-filter', is_flag=True, default=False)
-@click.option('--skip-time-stretch', is_flag=True, default=False)
-@click.option('--custom-time-stretch', default=0, type=float)
-def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
-          skip_quantize, skip_input_filter, skip_output_filter, skip_time_stretch,
-          custom_time_stretch):
+#@click.command()
+#@click.option('--st', default=0, help='number of semitones to shift')
+#@click.option('--log-level', default='INFO')
+#@click.option('--input-file', required=True)
+#@click.option('--output-file', required=True)
+#@click.option('--quantize-bits', default=12, help='bit rate of quantized output')
+#@click.option('--skip-quantize', is_flag=True, default=False)
+#@click.option('--skip-normalize', is_flag=True, default=False)
+#@click.option('--skip-input-filter', is_flag=True, default=False)
+#@click.option('--skip-output-filter', is_flag=True, default=False)
+#@click.option('--skip-time-stretch', is_flag=True, default=False)
+#@click.option('--custom-time-stretch', default=0, type=float)
+def pitch(st, input_file, output_file, log_level='INFO', quantize_bits=12, skip_normalize=False,
+          skip_quantize=False, skip_input_filter=False, skip_output_filter=False, skip_time_stretch=False,
+          custom_time_stretch=0):
 
     log = logging.getLogger(__name__)
     sh = logging.StreamHandler()
@@ -249,4 +250,86 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
 
 
 if __name__ == '__main__':
-    pitch()
+    window = tk.Tk()
+    window.geometry('600x200')
+    window.resizable(True, False)
+    window.title('P I T C H E R')
+
+    window.columnconfigure(0, weight=1)
+    window.columnconfigure(1, weight=3)
+
+    current_value = tk.DoubleVar()
+
+    
+    def get_current_value():
+        return '{: .2f}'.format(current_value.get())
+
+
+    def slider_changed(event):
+        value_label.configure(text=get_current_value())
+
+    st_slider = tk.Scale(
+        window,
+        from_= 12,
+        to=-12,
+        orient='vertical',
+        tickinterval=1,
+        command=slider_changed,
+        variable=current_value
+        )
+
+    st_slider.grid(
+        column=1,
+        row=0,
+        sticky='we'
+    )
+
+    slider_label = tk.Label(
+        window,
+        text='Semitones:'
+    )
+
+    slider_label.grid(
+        column=0,
+        row=0,
+        sticky='w'
+    )
+
+    value_label = tk.Label(
+        window,
+        text=get_current_value()
+    )
+
+    value_label.grid(
+        column=1,
+        row=0,
+        sticky='n'
+        )
+
+    input_entry = tk.Entry(width=60)
+    input_entry.grid(column=1, row=3, sticky='w')
+
+    output_entry = tk.Entry(width=60)
+    output_entry.grid(column=1, row=4, sticky='w')
+
+    from tkinter import filedialog
+    def askopeninputfilename():
+        input_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=window, title='Choose a file')
+        input_entry.delete(0, tk.END)
+        input_entry.insert(0, input_file)
+
+    def askopenoutputfilename():
+        output_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=window, title='Choose a file')
+        output_entry.delete(0, tk.END)
+        output_entry.insert(0, output_file)
+
+    input_browse_button = tk.Button(window, text='Input File', command=askopeninputfilename)
+    input_browse_button.grid(column=0, padx=5, row=3, sticky='w')
+
+    output_browse_button = tk.Button(window, text='Output File', command=askopenoutputfilename)
+    output_browse_button.grid(column=0, padx=5, row=4, sticky='w')
+
+    run_button = tk.Button(window, text='Pitch', command= lambda: pitch(int(float(get_current_value())), input_entry.get(), output_entry.get()))
+    run_button.grid(column=0, padx=5, row=5, sticky='w')
+
+    window.mainloop()
