@@ -19,6 +19,11 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.
 python pitcher.py --input-file ./input.wav --st -4 --output-file ./output.wav
 ```
 
+you can now also run a simple gui version using
+```
+python pitcher_gui.py
+```
+
 ### Options:
 ```
 --st                 - # semitones to shift pitch by,   		int,    required
