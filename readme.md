@@ -42,6 +42,7 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### TODO:
+- combine pitcher_gui.py and pitcher_gui_mac.py
 - optionally preserve stereo channels throughout processing
 - optional vcf (moog ring) good description in slides
 - replace librosa if there is a module with better performance, maybe essentia?
