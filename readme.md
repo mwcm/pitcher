@@ -30,7 +30,7 @@ python pitcher.py --input-file ./input.wav --st -4 --output-file ./output.wav
 --skip-normalize     - skip output normalization,       		flag
 --skip-input-filter  - skip input anti aliasing filter, 		flag
 --skip-output-filter - skip output equalization filter, 		flag
---skip-time-shift    - skip time sfhit inherent to pitching algorithm,	flag
+--skip-time-shift    - skip time shift inherent to pitching algorithm,	flag
 ```
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
