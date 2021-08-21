@@ -47,6 +47,7 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - combine pitcher_gui.py and pitcher_gui_mac.py
 - freeze pitcher_gui_mac requirements as another req file
 - enable console window on mac gui too (already defaults to shown in windows gui)
+- add all options to GUI
 - dedicated 33rpm -> 45rpm option, then add to GUI
 - only use ffmpeg/libav when necessary
 - optionally preserve stereo channels throughout processing
