@@ -42,12 +42,13 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### TODO:
+- optional 4 Pole Low Pas VCF (basically a Moog Ring Filter) as SSM-2044 (replicates outputs 1 & 2)
+- optional static lowpass filters (replicates outputs 3-6)
 - combine pitcher_gui.py and pitcher_gui_mac.py
 - freeze pitcher_gui_mac requirements as another req file
 - enable console window on mac gui too (already defaults to shown in windows gui)
 - dedicated 33rpm -> 45rpm option, then add to GUI
 - only use ffmpeg/libav when necessary
 - optionally preserve stereo channels throughout processing
-- optional vcf (moog ring) good description in slides
 - replace librosa if there is a module with better performance, maybe essentia?
 - improve high end input anti aliasing filter fit?
