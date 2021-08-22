@@ -58,4 +58,4 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - only use ffmpeg/libav when necessary
 - optionally preserve stereo channels throughout processing
 - replace librosa if there is a module with better performance, maybe essentia?
-- perfect high end input anti aliasing filter fit, likely not super important
+- perfect high end input anti aliasing filter fit, likely not very important
