@@ -26,7 +26,7 @@ You can now also run a simple gui version using the command:
 For Mac Users:
 ```python pitcher_gui_mac.py```
 
-The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has binary files for the GUI too now (.exe and .app).
+The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has binary files for the GUI (.exe and .app).
 
 
 ### Options:
@@ -48,9 +48,7 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 ### TODO:
 - optional 4 Pole Low Pas VCF (basically a Moog Ring Filter) as SSM-2044 (replicates outputs 1 & 2)
-- optional static lowpass filters (replicates outputs 3-6)
 - combine pitcher_gui.py and pitcher_gui_mac.py
-- freeze pitcher_gui_mac requirements as another req file
 - enable console window on mac gui too (already defaults to shown in windows gui)
 - add all options to GUI
 - dedicated 33rpm -> 45rpm option, then add to GUI
