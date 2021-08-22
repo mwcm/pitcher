@@ -16,15 +16,21 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.
 4. pip install -r ./requirements.txt
 ```
 
-### Usage:
+### Script Usage:
 ```
 python pitcher.py --input-file ./input.wav --st -4 --output-file ./output.wav
 ```
 
-you can now also run a simple gui version using
-```
-python pitcher_gui.py
-```
+You can now also run a simple gui version using the command:
+```python pitcher_gui.py```
+For Mac Users:
+```python pitcher_gui_mac.py```
+
+
+### Binaries
+We've also updated the release page with binaries for the GUI: 
+https://github.com/mwcm/pitcher/releases/tag/0.0.1
+
 
 ### Options:
 ```
