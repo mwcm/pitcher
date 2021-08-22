@@ -26,7 +26,7 @@ You can now also run a simple gui version using the command:
 For Mac Users:
 ```python pitcher_gui_mac.py```
 
-The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) has with binaries for the GUI too now, both Mac and PC.
+The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has binary files for the GUI too now (.exe and .app).
 
 
 ### Options:
