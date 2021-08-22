@@ -1,4 +1,6 @@
 # Pitcher.py
+![image](https://user-images.githubusercontent.com/2433319/130370952-3b029cf5-d9b7-4877-be0b-8593c017b5ea.png)
+
 - Free & OS emulation of the SP-12 & SP-1200 signal chain
 - Pitch shift / bitcrush / resample audio files
 - Written and tested in Python v3.7.7
