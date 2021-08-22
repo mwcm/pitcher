@@ -54,7 +54,7 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - optional 4 Pole Low Pas VCF (basically a Moog Ring Filter) as SSM-2044 (replicates outputs 1 & 2)
 - combine pitcher_gui.py and pitcher_gui_mac.py
 - add all options to GUI
-- dedicated 33rpm -> 45rpm option, then add to GUI
+- dedicated 33rpm -> 45rpm pre-processing option, add to GUI
 - only use ffmpeg/libav when necessary
 - optionally preserve stereo channels throughout processing
 - replace librosa if there is a module with better performance, maybe essentia?
