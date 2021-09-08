@@ -1,5 +1,7 @@
 # Pitcher.py
-- Free & OS emulation of the SP-12 & SP-1200 signal chain
+<img src="https://user-images.githubusercontent.com/2433319/130370952-3b029cf5-d9b7-4877-be0b-8593c017b5ea.png" width="600" height="320">
+
+- Free & OS emulation of the SP-12 & SP-1200 signal chain (now with GUI)
 - Pitch shift / bitcrush / resample audio files
 - Written and tested in Python v3.7.7
 - Based on [Physical and Behavioral Circuit Modeling of the SP-12
@@ -19,10 +21,16 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.
 python pitcher.py --input-file ./input.wav --st -4 --output-file ./output.wav
 ```
 
-you can now also run a simple gui version using
-```
-python pitcher_gui.py
-```
+You can now also run a simple gui version using the command:
+
+```python pitcher_gui.py```
+
+For Mac Users:
+
+```python pitcher_gui_mac.py```
+
+The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has binary files for the GUI (.exe and .app).
+
 
 ### Options:
 ```
@@ -42,14 +50,12 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### TODO:
-- optional 4 Pole Low Pas VCF (basically a Moog Ring Filter) as SSM-2044 (replicates outputs 1 & 2)
-- optional static lowpass filters (replicates outputs 3-6)
-- combine pitcher_gui.py and pitcher_gui_mac.py
-- freeze pitcher_gui_mac requirements as another req file
 - enable console window on mac gui too (already defaults to shown in windows gui)
+- optional 4 Pole Low Pas VCF (basically a Moog Filter) SSM-2044 (replicates outputs 1 & 2)
+- combine pitcher_gui.py and pitcher_gui_mac.py
 - add all options to GUI
-- dedicated 33rpm -> 45rpm option, then add to GUI
+- dedicated 33rpm -> 45rpm pre-processing option, add to GUI
 - only use ffmpeg/libav when necessary
 - optionally preserve stereo channels throughout processing
 - replace librosa if there is a module with better performance, maybe essentia?
-- improve high end input anti aliasing filter fit?
+- perfect high end input anti aliasing filter fit, likely not very important
