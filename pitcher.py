@@ -17,6 +17,8 @@ from librosa.core import resample
 from librosa.effects import time_stretch
 from librosa.util import normalize
 
+from moogfilter import MoogFilter
+
 ZOH_MULTIPLIER = 4
 RESAMPLE_MULTIPLIER = 2
 
@@ -233,7 +235,9 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
     if skip_output_filter:
         log.info('skipping output eq filter')
     else:
-        output = filter_output(output, log)  # eq filter
+        #output = filter_output(output, log)  # eq filter
+        mf = MoogFilter()
+        output = mf.process(output)
 
     log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
              f'with skip_normalize set to {skip_normalize}')
