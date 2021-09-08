@@ -34,16 +34,17 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 
 ### Options:
 ```
---st                 - # semitones to shift pitch by,   		int,    required
---input-file         - path to input file,              		string, required
---output-file        - path to output file,             		string, required
---quantize-bits      - bit rate of quantized output,    		int,    default 12
---time-shift         - custom time shift ratio to apply,		float,  default 0
---skip-quantize      - skip simulation of ADC quantize, 		flag
---skip-normalize     - skip output normalization,       		flag
---skip-input-filter  - skip input anti aliasing filter, 		flag
---skip-output-filter - skip output equalization filter, 		flag
+--st                 - # semitones to shift pitch by,   		             int,    required
+--input-file         - path to input file,              		            string, required
+--output-file        - path to output file,             		            string, required
+--quantize-bits      - bit rate of quantized output,    		            int,    default 12
+--time-shift         - custom time shift ratio to apply,		            float,  default 0
+--skip-quantize      - skip simulation of ADC quantize, 		            flag
+--skip-normalize     - skip output normalization,       		            flag
+--skip-input-filter  - skip input anti aliasing filter, 		            flag
+--skip-output-filter - skip output equalization LP filter, 		          flag
 --skip-time-shift    - skip time shift inherent to pitching algorithm,	flag
+--moog-filter        - enable Moog LP output filter, emulates SSM2044,  flag
 ```
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
