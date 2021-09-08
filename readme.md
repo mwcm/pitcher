@@ -34,14 +34,14 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 
 ### Options:
 ```
---st                 - # semitones to shift pitch by,   		            int,    required
---input-file         - path to input file,              		            string, required
---output-file        - path to output file,             		            string, required
---quantize-bits      - bit rate of quantized output,    		            int,    default 12
---time-shift         - custom time shift ratio to apply,		            float,  default 0
---skip-quantize      - skip simulation of ADC quantize, 		            flag
---skip-normalize     - skip output normalization,       		            flag
---skip-input-filter  - skip input anti aliasing filter, 		            flag
+--st                 - # semitones to shift pitch by,                   int,    required
+--input-file         - path to input file,                              string, required
+--output-file        - path to output file,                             string, required
+--quantize-bits      - bit rate of quantized output,                    int,    default 12
+--time-shift         - custom time shift ratio to apply,                float,  default 0
+--skip-quantize      - skip simulation of ADC quantize,                 flag
+--skip-normalize     - skip output normalization,                       flag
+--skip-input-filter  - skip input anti aliasing filter,                 flag
 --skip-output-filter - skip output equalization LP filter,              flag
 --skip-time-shift    - skip time shift inherent to pitching algorithm,  flag
 --moog-filter        - enable Moog LP output filter, emulates SSM2044,  flag
