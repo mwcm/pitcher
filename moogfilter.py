@@ -1,5 +1,9 @@
 import numpy as np
 
+
+# TODO: comment and reference
+
+
 # Thermal voltage (26 miliwatts at room temp)
 VT = 0.312
 MOOG_PI = 3.14159265358979323846264338327950288
@@ -38,32 +42,36 @@ class MoogFilter(LadderFilterBase):
 		self.drive = drive
 		self.x = 0
 		self.g = 0
-		self.V = list(0,0,0,0)
-		self.dV = list(0,0,0,0)
-		self.tV = list(0,0,0,0)
+		self.V = [0,0,0,0]
+		self.dV = [0,0,0,0]
+		self.tV = [0,0,0,0]
+		print(sample_rate)
 		self.setCutoff(cutoff)
 	
 	def process(self, samples):
-		dV0, dV1, dV2, dV3 = 0
+		dV0 = 0
+		dV1 = 0
+		dV2 = 0
+		dV3 = 0
 
 		for i, s in enumerate(samples):
-			dv0 = -self.g * (np.tanh((self.drive * samples[i] + self.resonance * self.V[3]) / (2.0 * VT)) + self.tV[0])
-			self.V[0] += (dV0 + self.dV[0]) / (2.0 * self.sampleRate)
+			dV0 = -self.g * (np.tanh((self.drive * samples[i] + self.resonance * self.V[3]) / (2.0 * VT)) + self.tV[0])
+			self.V[0] += (dV0 + self.dV[0]) / (2.0 * self.sample_rate)
 			self.dV[0] = dV0
 			self.tV[0] = np.tanh(self.V[0] / (2.0 * VT))
 			
 			dV1 = self.g * (self.tV[0] - self.tV[1])
-			self.V[1] += (dV1 + self.dV[1]) / (2.0 * self.sampleRate)
+			self.V[1] += (dV1 + self.dV[1]) / (2.0 * self.sample_rate)
 			self.dV[1] = dV1
 			self.tV[1] = np.tanh(self.V[1] / (2.0 * VT))
 			
 			dV2 = self.g * (self.tV[1] - self.tV[2])
-			self.V[2] += (dV2 + self.dV[2]) / (2.0 * self.sampleRate)
+			self.V[2] += (dV2 + self.dV[2]) / (2.0 * self.sample_rate)
 			self.dV[2] = dV2
 			self.tV[2] = np.tanh(self.V[2] / (2.0 * VT))
 			
 			dV3 = self.g * (self.tV[2] - self.tV[3])
-			self.V[3] += (dV3 + self.dV[3]) / (2.0 * self.sampleRate)
+			self.V[3] += (dV3 + self.dV[3]) / (2.0 * self.sample_rate)
 			self.dV[3] = dV3
 			self.tV[3] = np.tanh(self.V[3] / (2.0 * VT))
 			
@@ -73,5 +81,6 @@ class MoogFilter(LadderFilterBase):
 	
 	def setCutoff(self, cutoff):
 		self.cutoff = cutoff
+		print(self.sample_rate)
 		self.x = (MOOG_PI * cutoff) / self.sample_rate
 		self.g = 4.0 * MOOG_PI * VT * cutoff * (1.0 - self.x) / (1.0 + self.x)

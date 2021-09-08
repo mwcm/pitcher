@@ -171,9 +171,10 @@ def write_mp3(f, x, sr, normalized=False):
 @click.option('--skip-output-filter', is_flag=True, default=False)
 @click.option('--skip-time-stretch', is_flag=True, default=False)
 @click.option('--custom-time-stretch', default=0, type=float)
+@click.option('--moog-filter', is_flag=True, default=False)
 def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
           skip_quantize, skip_input_filter, skip_output_filter, skip_time_stretch,
-          custom_time_stretch):
+          custom_time_stretch, moog_filter):
 
     log = logging.getLogger(__name__)
     sh = logging.StreamHandler()
@@ -235,9 +236,15 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
     if skip_output_filter:
         log.info('skipping output eq filter')
     else:
-        #output = filter_output(output, log)  # eq filter
-        mf = MoogFilter(output)
-        output = mf.process(output)
+        if moog_filter:
+            # TODO: add cli options for moog filter
+            # TODO: is default sample rate right?
+            mf = MoogFilter()
+            output = mf.process(output)
+        else:
+            # TODO: could make another "rolled back" LP setting to sim outputs 5,6
+            output = filter_output(output, log)  # eq filter
+
 
     log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
              f'with skip_normalize set to {skip_normalize}')
