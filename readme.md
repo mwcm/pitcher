@@ -42,7 +42,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 --skip-quantize      - skip simulation of ADC quantize,                 flag
 --skip-normalize     - skip output normalization,                       flag
 --skip-input-filter  - skip input anti aliasing filter,                 flag
---skip-output-filter - skip all output filtering,                       flag
+--skip-output-filter - skip all output filtering (default and moog),    flag
 --skip-time-shift    - skip time shift inherent to pitching algorithm,  flag
 --moog-filter        - enable Moog LP output filter, emulates SSM2044,  flag
 ```
