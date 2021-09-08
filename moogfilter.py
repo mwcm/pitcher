@@ -45,7 +45,6 @@ class MoogFilter(LadderFilterBase):
 		self.V = [0,0,0,0]
 		self.dV = [0,0,0,0]
 		self.tV = [0,0,0,0]
-		print(sample_rate)
 		self.setCutoff(cutoff)
 	
 	def process(self, samples):
@@ -81,6 +80,5 @@ class MoogFilter(LadderFilterBase):
 	
 	def setCutoff(self, cutoff):
 		self.cutoff = cutoff
-		print(self.sample_rate)
 		self.x = (MOOG_PI * cutoff) / self.sample_rate
 		self.g = 4.0 * MOOG_PI * VT * cutoff * (1.0 - self.x) / (1.0 + self.x)
