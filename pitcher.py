@@ -236,7 +236,7 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
         log.info('skipping output eq filter')
     else:
         #output = filter_output(output, log)  # eq filter
-        mf = MoogFilter()
+        mf = MoogFilter(output)
         output = mf.process(output)
 
     log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
