@@ -51,13 +51,13 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### TODO:
+- preserve stereo channels
 - enable console window on mac gui too (already defaults to shown in windows gui)
-- enable moog filter for gui versions
 - combine pitcher_gui.py and pitcher_gui_mac.py
 - combine pitcher and pitcher_gui.py
+- enable moog filter for gui versions
 - add all options to GUI
 - dedicated 33rpm -> 45rpm pre-processing option, add to GUI
 - only use ffmpeg/libav when necessary
-- optionally preserve stereo channels throughout processing
 - replace librosa if there is a module with better performance, maybe essentia?
 - perfect high end input anti aliasing filter fit, likely not very important
