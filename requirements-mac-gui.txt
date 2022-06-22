@@ -9,7 +9,7 @@ librosa==0.7.2
 llvmlite==0.31.0
 macholib==1.15
 numba==0.48.0
-numpy==1.18.5
+numpy==1.22.0
 pycparser==2.20
 pydub==0.24.1
 pyinstaller==4.0
