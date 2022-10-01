@@ -60,4 +60,5 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - dedicated 33rpm -> 45rpm pre-processing option, add to GUI
 - only use ffmpeg/libav when necessary
 - replace librosa if there is a module with better performance, maybe essentia?
+- optimize executable size, seems way too large
 - perfect high end input anti aliasing filter fit, likely not very important
