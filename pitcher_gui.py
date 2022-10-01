@@ -6,12 +6,15 @@
 
 
 import logging
-import click
+
+
+# TODO these imports are probably causing the exe size to be huge
 import numpy as np
 import scipy as sp
 import audiofile as af
 import tkinter as tk
 
+from sys import platform, path
 from pydub import AudioSegment
 from librosa import load
 from librosa.core import resample
@@ -41,6 +44,11 @@ log_levels = {'INFO':     logging.INFO,
               'ERROR':    logging.ERROR,
               'CRITICAL': logging.CRITICAL}
 
+
+if platform == "darwin":
+    if not 'ffmpeg' in path:
+        path.append('/usr/local/bin/ffmpeg')
+        AudioSegment.converter = '/usr/local/bin/ffmpeg'
 
 def calc_quantize_function(quantize_bits, log):
     # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
@@ -158,18 +166,6 @@ def write_mp3(f, x, sr, normalized=False):
     return
 
 
-#@click.command()
-#@click.option('--st', default=0, help='number of semitones to shift')
-#@click.option('--log-level', default='INFO')
-#@click.option('--input-file', required=True)
-#@click.option('--output-file', required=True)
-#@click.option('--quantize-bits', default=12, help='bit rate of quantized output')
-#@click.option('--skip-quantize', is_flag=True, default=False)
-#@click.option('--skip-normalize', is_flag=True, default=False)
-#@click.option('--skip-input-filter', is_flag=True, default=False)
-#@click.option('--skip-output-filter', is_flag=True, default=False)
-#@click.option('--skip-time-stretch', is_flag=True, default=False)
-#@click.option('--custom-time-stretch', default=0, type=float)
 def pitch(st, input_file, output_file, log_level='INFO', quantize_bits=12, skip_normalize=False,
           skip_quantize=False, skip_input_filter=False, skip_output_filter=False, skip_time_stretch=False,
           custom_time_stretch=0):
