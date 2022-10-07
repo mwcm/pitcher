@@ -247,22 +247,24 @@ def pitch(st, input_file, output_file, log_level='INFO', quantize_bits=12, skip_
 
 if __name__ == '__main__':
     window = tk.Tk()
-    window.geometry('600x200')
+    window.geometry('600x320')
     window.resizable(True, False)
     window.title('P I T C H E R')
 
     window.columnconfigure(0, weight=1)
     window.columnconfigure(1, weight=3)
 
-    current_value = tk.DoubleVar()
+    current_st_value = tk.DoubleVar()
+    current_bit_value = tk.DoubleVar()
 
+    current_st_value.set(0)
+    current_bit_value.set(12)
     
-    def get_current_value():
-        return '{: .2f}'.format(current_value.get())
+    def get_current_st_value():
+        return '{: .2f}'.format(current_st_value.get())
 
-
-    def slider_changed(event):
-        value_label.configure(text=get_current_value())
+    def get_current_bit_value():
+        return '{: .2f}'.format(current_bit_value.get())
 
     st_slider = tk.Scale(
         window,
@@ -270,43 +272,63 @@ if __name__ == '__main__':
         to=-12,
         orient='vertical',
         tickinterval=1,
-        command=slider_changed,
-        variable=current_value
+        length=200,
+        variable=current_st_value
+        )
+
+    bit_slider = tk.Scale(
+        window,
+        from_= 16,
+        to = 2,
+        orient='vertical',
+        length = 200,
+        tickinterval=2,
+        variable=current_bit_value
         )
 
     st_slider.grid(
-        column=1,
-        row=0,
-        sticky='we'
+        column=0,
+        padx=5,
+        row=1,
+        sticky='w'
     )
 
-    slider_label = tk.Label(
+    bit_slider.grid(
+        column=1,
+        padx=5,
+        row=1,
+        sticky='w'
+    )
+
+    st_slider_label = tk.Label(
         window,
         text='Semitones:'
     )
 
-    slider_label.grid(
+    bit_slider_label = tk.Label(
+        window,
+        text='Quantize Bits:'
+    )
+
+    st_slider_label.grid(
         column=0,
+        padx=5,
         row=0,
         sticky='w'
     )
 
-    value_label = tk.Label(
-        window,
-        text=get_current_value()
+    bit_slider_label.grid(
+        column=1,
+        padx=5,
+        row=0,
+        sticky='w'
     )
 
-    value_label.grid(
-        column=1,
-        row=0,
-        sticky='n'
-        )
+    input_entry = tk.Entry(width=40)
+    input_entry.grid(column=1, row=4, sticky='w')
 
-    input_entry = tk.Entry(width=60)
-    input_entry.grid(column=1, row=3, sticky='w')
-
-    output_entry = tk.Entry(width=60)
-    output_entry.grid(column=1, row=4, sticky='w')
+    output_entry = tk.Entry(width=40)
+    output_entry.grid(column=1, row=5, sticky='w')
 
     from tkinter import filedialog
     def askopeninputfilename():
@@ -319,13 +341,16 @@ if __name__ == '__main__':
         output_entry.delete(0, tk.END)
         output_entry.insert(0, output_file)
 
-    input_browse_button = tk.Button(window, text='Input File', command=askopeninputfilename)
-    input_browse_button.grid(column=0, padx=5, row=3, sticky='w')
+    input_browse_button = tk.Button(window, text='Input File', command=askopeninputfilename, width=16)
+    input_browse_button.grid(column=0, padx=5, row=4, sticky='w')
 
-    output_browse_button = tk.Button(window, text='Output File', command=askopenoutputfilename)
-    output_browse_button.grid(column=0, padx=5, row=4, sticky='w')
+    output_browse_button = tk.Button(window, text='Output File', command=askopenoutputfilename, width=16)
+    output_browse_button.grid(column=0, padx=5, row=5, sticky='w')
 
-    run_button = tk.Button(window, text='Pitch', command= lambda: pitch(int(float(get_current_value())), input_entry.get(), output_entry.get()))
-    run_button.grid(column=0, padx=5, row=5, sticky='w')
+    run_button = tk.Button(
+        window, text='Pitch', command= lambda: pitch(int(float(get_current_st_value())),
+        input_entry.get(), output_entry.get(), 'INFO', int(float(get_current_bit_value())))
+    )
+    run_button.grid(column=0, padx=5, row=6, sticky='w')
 
     window.mainloop()
