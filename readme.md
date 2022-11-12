@@ -18,7 +18,7 @@ Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.
 
 ### Usage:
 ```
-python pitcher.py --input-file ./input.wav --st -4 --output-file ./output.wav
+python pitcher_cli.py --input-file ./input.wav --st -4 --output-file ./output.wav
 ```
 
 You can now also run a simple gui version using the command:
