@@ -50,6 +50,7 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### Current TODO:
+- Bump numpy from 1.21.6 to 1.22.0 PR #5 
 - preserve stereo channels
 - add all options to GUI
 - scipy resample vs librosa resample and usages (git history? comments?)
