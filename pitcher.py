@@ -1,21 +1,46 @@
-#! /usr/bin/env python3
-# Pitcher v 0.1
+#!/usr/bin/env python
+
+# Pitcher v 0.5
 # Copyright (C) 2020 Morgan Mitchell
 # Based on: Physical and Behavioral Circuit Modeling of the SP-12, DT Yeh, 2007
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
 
-
 import logging
-import click
-import numpy as np
-import scipy as sp
-import audiofile as af
+from sys import platform, path
+
+from scipy.interpolate import interp1d as sp_interp1d
+
+from scipy.signal import ellip    as sp_ellip
+from scipy.signal import sosfilt  as sp_sosfilt
+from scipy.signal import tf2sos   as sp_tf2sos
+from scipy.signal import firwin2  as sp_firwin2
+from scipy.signal import resample as sp_resample
+from scipy.signal import decimate as sp_decimate
+
+from scipy.spatial import cKDTree as sp_cKDTree
+
+from numpy import int16   as np_int16
+from numpy import int32   as np_int32
+from numpy import float32 as np_float32
+
+from numpy import arange         as np_arange
+from numpy import array          as np_array
+from numpy import asarray        as np_asarray
+from numpy import asfortranarray as np_asfortranarray
+from numpy import linspace       as np_linspace
+from numpy import power          as np_power
+from numpy import repeat         as np_repeat
+from numpy import round          as np_round
 
 from pydub import AudioSegment
-from librosa import load
-from librosa.core import resample
-from librosa.effects import time_stretch
-from librosa.util import normalize
+
+from audiofile import write as audiofile_write
+
+from librosa import load                 as librosa_load
+from librosa.core import resample        as librosa_resample
+from librosa.util import normalize       as librosa_normalize
+from librosa.effects import time_stretch as librosa_time_stretch
+# TODO: could also try pyrubberband.pyrb.time_stretch
 
 from moogfilter import MoogFilter
 
@@ -24,7 +49,11 @@ RESAMPLE_MULTIPLIER = 2
 
 INPUT_SR = 96000
 OUTPUT_SR = 48000
-TARGET_SR = 26040
+
+# NOTE: sp-1200 rate 26040, sp-12 rate 27500
+SP_SR = 26040
+
+OUTPUT_FILTER_TYPES = ['LP', 'Moog']
 
 POSITIVE_TUNING_RATIO = 1.02930223664
 NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
@@ -43,19 +72,25 @@ log_levels = {'INFO':     logging.INFO,
               'CRITICAL': logging.CRITICAL}
 
 
+if platform == "darwin":
+    if not 'ffmpeg' in path:
+        path.append('/usr/local/bin/ffmpeg')
+        AudioSegment.converter = '/usr/local/bin/ffmpeg'
+
+
 def calc_quantize_function(quantize_bits, log):
     # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
     log.info(f'calculating quantize fn with {quantize_bits} quantize bits')
     u = 1  # max amplitude to quantize
     quantization_levels = 2 ** quantize_bits
     delta_s = 2 * u / quantization_levels  # level distance
-    s_midrise = -u + delta_s / 2 + np.arange(quantization_levels) * delta_s
-    s_midtread = -u + np.arange(quantization_levels) * delta_s
+    s_midrise = -u + delta_s / 2 + np_arange(quantization_levels) * delta_s
+    s_midtread = -u + np_arange(quantization_levels) * delta_s
     log.info('done calculating quantize fn')
     return s_midrise, s_midtread
 
 
-def adjust_pitch(x, st, skip_time_stretch, log):
+def adjust_pitch(x, st, log):
     log.info(f'adjusting audio pitch by {st} semitones')
     t = 0
     if (0 > st >= -8):
@@ -65,17 +100,17 @@ def adjust_pitch(x, st, skip_time_stretch, log):
     elif st == 0:  # no change
         return x
     else:  # -8 > st: extrapolate, seems to lose a few points of precision?
-        f = sp.interpolate.interp1d(
+        f = sp_interp1d(
                 list(NEGATIVE_TUNING_RATIOS.keys()),
                 list(NEGATIVE_TUNING_RATIOS.values()),
                 fill_value='extrapolate'
         )
         t = f(st)
 
-    n = int(np.round(len(x) * t))
-    r = np.linspace(0, len(x) - 1, n).round().astype(np.int32)
+    n = int(np_round(len(x) * t))
+    r = np_linspace(0, len(x) - 1, n).round().astype(np_int32)
     pitched = [x[r[e]] for e in range(n-1)]  # could yield instead
-    pitched = np.array(pitched)
+    pitched = np_array(pitched)
     log.info('done pitching audio')
 
     return pitched
@@ -83,24 +118,25 @@ def adjust_pitch(x, st, skip_time_stretch, log):
 
 def filter_input(x, log):
     log.info('applying anti aliasing filter')
-    # approximating the anti aliasing filter, don't think this needs to be
-    # perfect since at fs/2=13.02kHz only -10dB attenuation, might be able to
-    # improve accuracy in the 15 -> 20kHz range with firwin?
-    f = sp.signal.ellip(4, 1, 72, 0.666, analog=False, output='sos')
-    y = sp.signal.sosfilt(f, x)
+    # NOTE: approximating the anti aliasing filter, don't think this needs to be
+    #       perfect since at fs/2=13.02kHz only -10dB attenuation, might be able to
+    #       improve accuracy in the 15 -> 20kHz range with firwin?
+    f = sp_ellip(4, 1, 72, 0.666, analog=False, output='sos')
+    y = sp_sosfilt(f, x)
     log.info('done applying anti aliasing filter')
     return y
 
 
-# could use sosfiltfilt for zero phase filtering, but it doubles filter order
-def filter_output(x, log):
+# TODO: make another "rolled back" LP setting to sim outputs 5,6 w/ 10,000 cutoff
+# NOTE: could use sosfiltfilt for zero phase filtering, but it doubles filter order
+def filter_output(x, sample_rate, log):
     log.info('applying output eq filter')
-    freq = np.array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
-    att = np.array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
-    gain = np.power(10, att/20)
-    f = sp.signal.firwin2(45, freq, gain, fs=OUTPUT_SR, antisymmetric=False)
-    sos = sp.signal.tf2sos(f, [1.0])
-    y = sp.signal.sosfilt(sos, x)
+    freq = np_array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
+    att = np_array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
+    gain = np_power(10, att/20)
+    f = sp_firwin2(45, freq, gain, fs=sample_rate, antisymmetric=False)
+    sos = sp_tf2sos(f, [1.0])
+    y = sp_sosfilt(sos, x)
     log.info('done applying output eq filter')
     return y
 
@@ -110,10 +146,10 @@ def scipy_resample(y, input_sr, target_sr, factor, log):
     log.info(f'resampling audio to sample rate of {target_sr * factor}')
     seconds = len(y)/input_sr
     target_samples = int(seconds * (target_sr * factor)) + 1
-    resampled = sp.signal.resample(y, target_samples)
+    resampled = sp_resample(y, target_samples)
     log.info('done resample 1/2')
     log.info(f'resampling audio to sample rate of {target_sr}')
-    decimated = sp.signal.decimate(resampled, factor)
+    decimated = sp_decimate(resampled, factor)
     log.info('done resample 2/2')
     log.info('done resampling audio')
     return decimated
@@ -121,24 +157,24 @@ def scipy_resample(y, input_sr, target_sr, factor, log):
 
 def zero_order_hold(y, zoh_multiplier, log):
     log.info(f'applying zero order hold of {zoh_multiplier}')
+    # NOTE: could also try a freq aliased sinc filter
     # intentionally oversample by repeating each sample 4 times
-    # could also try a freq aliased sinc filter
-    zoh_applied = np.repeat(y, zoh_multiplier).astype(np.float32)
+    zoh_applied = np_repeat(y, zoh_multiplier).astype(np_float32)
     log.info('done applying zero order hold')
     return zoh_applied
 
 
 def nearest_values(x, y):
-    x, y = map(np.asarray, (x, y))
-    tree = sp.spatial.cKDTree(y[:, None])
+    x, y = map(np_asarray, (x, y))
+    tree = sp_cKDTree(y[:, None])
     ordered_neighbors = tree.query(x[:, None], 1)[1]
     return ordered_neighbors
 
 
-# no audible difference after audacity invert test @ 12 bits
-# however, when plotted the scaled amplitude of quantized audio is
-# noticeably higher than the original, leaving for now
-def quantize(x, S, bits, log):
+def q(x, S, bits, log):
+    # NOTE: no audible difference after audacity invert test @ 12 bits
+    #       however, when plotted the scaled amplitude of quantized audio is
+    #       noticeably higher than old implementation, leaving for now
     log.info(f'quantizing audio @ {bits} bits')
     y = nearest_values(x, S)
     quantized = S.flat[y].reshape(x.shape)
@@ -147,34 +183,35 @@ def quantize(x, S, bits, log):
 
 
 # https://stackoverflow.com/questions/53633177/how-to-read-a-mp3-audio-file-into-a-numpy-array-save-a-numpy-array-to-mp3
-def write_mp3(f, x, sr, normalized=False):
+def write_mp3(f, x, sr, normalize_output=False):
     """numpy array to MP3"""
     channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
-    if normalized:  # normalized array - each item should be a float in [-1, 1)
-        y = np.int16(x * 2 ** 15)
-    else:
-        y = np.int16(x)
+
+    if normalize_output:
+        x = librosa_normalize(x)
+
+    # zoh converts to float32, normalized?
+    y = np_int16(x * 2 ** 15)
     song = AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
     song.export(f, format="mp3", bitrate="320k")
     return
 
 
-@click.command()
-@click.option('--st', default=0, help='number of semitones to shift')
-@click.option('--log-level', default='INFO')
-@click.option('--input-file', required=True)
-@click.option('--output-file', required=True)
-@click.option('--quantize-bits', default=12, help='bit rate of quantized output')
-@click.option('--skip-quantize', is_flag=True, default=False)
-@click.option('--skip-normalize', is_flag=True, default=False)
-@click.option('--skip-input-filter', is_flag=True, default=False)
-@click.option('--skip-output-filter', is_flag=True, default=False)
-@click.option('--skip-time-stretch', is_flag=True, default=False)
-@click.option('--custom-time-stretch', default=0, type=float)
-@click.option('--moog-filter', is_flag=True, default=False)
-def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
-          skip_quantize, skip_input_filter, skip_output_filter, skip_time_stretch,
-          custom_time_stretch, moog_filter):
+def pitch(
+        st: int,
+        input_file: str,
+        output_file: str,
+        log_level: str,
+        input_filter=True,
+        quantize=True,
+        time_stretch=True,
+        output_filter=True,
+        normalize_output=False,
+        quantize_bits=12,
+        custom_time_stretch=1.0,
+        output_filter_type=OUTPUT_FILTER_TYPES[1],
+        moog_output_filter_cutoff=10000
+    ):
 
     log = logging.getLogger(__name__)
     sh = logging.StreamHandler()
@@ -190,70 +227,83 @@ def pitch(st, log_level, input_file, output_file, quantize_bits, skip_normalize,
     log_level = log_levels[log_level]
     log.setLevel(log_level)
 
+    if output_filter_type not in OUTPUT_FILTER_TYPES:
+        log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
+        log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
+
     log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
-    y, s = load(input_file, sr=INPUT_SR)
+    y, s = librosa_load(input_file, sr=INPUT_SR)
     log.info('done loading')
 
     midrise, midtread = calc_quantize_function(quantize_bits, log)
 
-    if skip_input_filter:
-        log.info('skipping input anti aliasing filter')
-    else:
+    if input_filter:
         y = filter_input(y, log)
-
-    resampled = scipy_resample(y, INPUT_SR, TARGET_SR, RESAMPLE_MULTIPLIER, log)
-
-    if skip_quantize:
-        log.info('skipping quantize')
     else:
+        log.info('skipping input anti aliasing filter')
+
+    resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER, log)
+
+    if quantize:
+        # TODO: midrise option?
         # simulate analog -> digital conversion
-        # TODO: midtread/midrise option?
-        resampled = quantize(resampled, midtread, quantize_bits, log)
+        resampled = q(resampled, midtread, quantize_bits, log)
+    else:
+        log.info('skipping quantize')
 
+    pitched = adjust_pitch(resampled, st, log)
 
-    pitched = adjust_pitch(resampled, st, skip_time_stretch, log)
-
-    if skip_time_stretch:
+    if ((custom_time_stretch == 1.0) and (time_stretch == True)):
+        # Default SP-12 timestretch inherent w/ adjust_pitch
+        pass
+    elif ((custom_time_stretch == 0.0) or (time_stretch == False)):
+        # No timestretch (e.g. original audio length):
         ratio = len(pitched) / len(resampled)
-        log.info('\"skipping\" time stretch: stretching back to original length...')
-        pitched = time_stretch(pitched, ratio)
-        pitched = normalize(pitched)
+        log.info('time stretch: stretching back to original length...')
+        pitched = librosa_time_stretch(pitched, ratio)
+        pass
+    else:
+        # Custom timestretch
+        ratio = len(pitched) / len(resampled)
+        log.info('time stretch: stretching back to original length...')
+        pitched = librosa_time_stretch(pitched, ratio)
+        log.info(f'running custom time stretch of rate: {custom_time_stretch}')
+        pitched = librosa_time_stretch(pitched, custom_time_stretch)
 
-    if custom_time_stretch:
-        log.info(f'running custom time stretch of ratio: {custom_time_stretch}')
-        pitched = time_stretch(pitched, custom_time_stretch)
-        pitched = normalize(pitched)
 
-
-    # oversample again (default factor of 4) to simulate ZOH
     # TODO: retest output against freq aliased sinc fn
+    # oversample again (default factor of 4) to simulate ZOH
     post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER, log)
 
-    # TODO: try using scipy resample here?
-    output = resample(np.asfortranarray(post_zero_order_hold),
-                      TARGET_SR * ZOH_MULTIPLIER, OUTPUT_SR)
+    # NOTE: why use scipy above and librosa here?
+    #       check git history to see if there was a note about this
+    output = librosa_resample(
+                np_asfortranarray(post_zero_order_hold),
+                orig_sr=SP_SR * ZOH_MULTIPLIER,
+                target_sr=OUTPUT_SR
+            )
 
-    if skip_output_filter:
-        log.info('skipping output eq filter')
-    else:
-        if moog_filter:
-            # TODO: add cli options for moog filter
-            # TODO: is default sample rate right?
-            mf = MoogFilter()
-            output = mf.process(output)
+    if output_filter:
+        if output_filter_type == OUTPUT_FILTER_TYPES[0]:
+            # lp eq filter, like outputs 3, 4, 5 & 6
+            output = filter_output(output, OUTPUT_SR, log)
         else:
-            # TODO: could make another "rolled back" LP setting to sim outputs 5,6
-            output = filter_output(output, log)  # eq filter
+            # moog vcf, for kicks, like outputs 1 & 2
+            mf = MoogFilter(sample_rate=OUTPUT_SR, cutoff=moog_output_filter_cutoff)
+            output = mf.process(output)
+    else:
+        # unfiltered like outputs 7 & 8
+        log.info('skipping output eq filter')
 
 
     log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
-             f'with skip_normalize set to {skip_normalize}')
+             f'with normalize_output set to {normalize_output}')
 
     if '.mp3' in output_file:
-        write_mp3(output_file, output, OUTPUT_SR, not skip_normalize)
+        write_mp3(output_file, output, OUTPUT_SR, normalize_output)
     else:
         output_file = output_file
-        af.write(output_file, output, OUTPUT_SR, '16bit', not skip_normalize)
+        audiofile_write(output_file, output, OUTPUT_SR, '16bit', normalize_output)
 
     log.info(f'done! output_file at: {output_file}')
     return
