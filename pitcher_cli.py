@@ -15,8 +15,8 @@ from pitcher import pitch, OUTPUT_FILTER_TYPES
 @click.option('--normalize-output',           is_flag=True, default=False)
 @click.option('--quantize-bits',              type=int,     default=12, help='bit rate of quantized output')
 @click.option('--custom-time-stretch',        type=float,   default=1.0)
-@click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default='MoogLP', case_sensitive=False)
-@click.option('--moog-output-filter-cutoff',  type=int, default='10000', case_sensitive=False)
+@click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default=OUTPUT_FILTER_TYPES[0], case_sensitive=False)
+@click.option('--moog-output-filter-cutoff',  type=int,     default='10000')
 def cli_wrapper(
         st,
         input_file,

@@ -209,7 +209,7 @@ def pitch(
         normalize_output=False,
         quantize_bits=12,
         custom_time_stretch=1.0,
-        output_filter_type=OUTPUT_FILTER_TYPES[1],
+        output_filter_type=OUTPUT_FILTER_TYPES[0],
         moog_output_filter_cutoff=10000
     ):
 
