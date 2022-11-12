@@ -3,7 +3,7 @@
 
 - Free & OS emulation of the SP-12 & SP-1200 signal chain (now with GUI)
 - Pitch shift / bitcrush / resample audio files
-- Written and tested in Python v3.7.9
+- Written and tested in Python v3.10.7
 - Based on [Physical and Behavioral Circuit Modeling of the SP-12
 Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.pdf) & [Slides](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 - Audio examples [here](https://soundcloud.com/user-320158268/sets/pitcher-examples) and [here](https://tinyurl.com/yckcmhb2)
@@ -50,7 +50,6 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### Current TODO:
-- Bump numpy from 1.21.6 to 1.22.0 PR #5 
 - preserve stereo channels
 - add all options to GUI
 - scipy resample vs librosa resample and usages (git history? comments?)
