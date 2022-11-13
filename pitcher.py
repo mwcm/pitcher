@@ -128,10 +128,10 @@ def filter_input(x, log):
     return y
 
 
-# TODO: make another "rolled back" LP setting to sim outputs 5,6 w/ 10,000 cutoff
-# NOTE: could use sosfiltfilt for zero phase filtering, but it doubles filter order
 def filter_output(x, sample_rate, log):
     log.info('applying output eq filter')
+    # TODO: make another "rolled back" LP setting to sim outputs 5,6 w/ 10,000 cutoff
+    # NOTE: could use sosfiltfilt for zero phase filtering, but it doubles filter order
     freq = np_array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
     att = np_array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
     gain = np_power(10, att/20)
@@ -194,7 +194,108 @@ def write_mp3(f, x, sr):
     return
 
 
-# remember add force-mono when going back to preserve stereo channels if exist
+def process_array(
+        y,
+        st,
+        input_filter,
+        quantize, 
+        time_stretch,
+        output_filter,
+        quantize_bits,
+        custom_time_stretch,
+        output_filter_type,
+        moog_output_filter_cutoff,
+        log
+    ):
+
+    log.info('done loading')
+
+    midrise, midtread = calc_quantize_function(quantize_bits, log)
+
+    if input_filter:
+        y = filter_input(y, log)
+    else:
+        log.info('skipping input anti aliasing filter')
+
+    resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER, log)
+
+    if quantize:
+        # TODO: midrise option?
+        # simulate analog -> digital conversion
+        resampled = q(resampled, midtread, quantize_bits, log)
+    else:
+        log.info('skipping quantize')
+
+    pitched = adjust_pitch(resampled, st, log)
+
+    if ((custom_time_stretch == 1.0) and (time_stretch == True)):
+        # Default SP-12 timestretch inherent w/ adjust_pitch
+        pass
+    elif ((custom_time_stretch == 0.0) or (time_stretch == False)):
+        # No timestretch (e.g. original audio length):
+        ratio = len(pitched) / len(resampled)
+        log.info('time stretch: stretching back to original length...')
+        pitched = librosa_time_stretch(pitched, ratio)
+        pass
+    else:
+        # Custom timestretch
+        ratio = len(pitched) / len(resampled)
+        log.info('time stretch: stretching back to original length...')
+        pitched = librosa_time_stretch(pitched, ratio)
+        log.info(f'running custom time stretch of rate: {custom_time_stretch}')
+        pitched = librosa_time_stretch(pitched, custom_time_stretch)
+
+
+    # TODO: retest output against freq aliased sinc fn
+    # oversample again (default factor of 4) to simulate ZOH
+    post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER, log)
+
+    # NOTE: why use scipy above and librosa here?
+    #       check git history to see if there was a note about this
+    output = librosa_resample(
+                np_asfortranarray(post_zero_order_hold),
+                orig_sr=SP_SR * ZOH_MULTIPLIER,
+                target_sr=OUTPUT_SR
+            )
+
+    if output_filter:
+        if output_filter_type == OUTPUT_FILTER_TYPES[0]:
+            # lp eq filter, like outputs 3, 4, 5 & 6
+            output = filter_output(output, OUTPUT_SR, log)
+        else:
+            # moog vcf, for kicks, like outputs 1 & 2
+            mf = MoogFilter(sample_rate=OUTPUT_SR, cutoff=moog_output_filter_cutoff)
+            output = mf.process(output)
+    else:
+        # unfiltered like outputs 7 & 8
+        log.info('skipping output eq filter')
+
+    return output
+
+
+def write_audio(output, output_file, normalize_output, log):
+
+    log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} with normalize_output set to {normalize_output}')
+
+    if normalize_output:
+        output = librosa_normalize(output)
+
+    if '.mp3' in output_file:
+        write_mp3(output_file, output, OUTPUT_SR)
+    elif '.wav' in output_file:
+        sf_write(output_file, output, OUTPUT_SR, subtype='PCM_16')
+    elif '.ogg' in output_file:
+        sf_write(output_file, output, OUTPUT_SR, format='ogg', subtype='vorbis')
+    elif '.flac' in output_file:
+        sf_write(output_file, output, OUTPUT_SR, format='flac', subtype='PCM_16')
+    else:
+        log.error(f'Output file type unsupported or unrecognized, saving to {output_file}.wav')
+        sf_write(output_file + '.wav', output, OUTPUT_SR, subtype='PCM_16')
+
+    log.info(f'done writing output_file at: {output_file}')
+    return
+
+
 def pitch(
         st: int,
         input_file: str,
@@ -230,120 +331,32 @@ def pitch(
         log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
         log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
 
-    def process_array(y):
-        log.info('done loading')
-
-        midrise, midtread = calc_quantize_function(quantize_bits, log)
-
-        if input_filter:
-            y = filter_input(y, log)
-        else:
-            log.info('skipping input anti aliasing filter')
-
-        resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER, log)
-
-        if quantize:
-            # TODO: midrise option?
-            # simulate analog -> digital conversion
-            resampled = q(resampled, midtread, quantize_bits, log)
-        else:
-            log.info('skipping quantize')
-
-        pitched = adjust_pitch(resampled, st, log)
-
-        if ((custom_time_stretch == 1.0) and (time_stretch == True)):
-            # Default SP-12 timestretch inherent w/ adjust_pitch
-            pass
-        elif ((custom_time_stretch == 0.0) or (time_stretch == False)):
-            # No timestretch (e.g. original audio length):
-            ratio = len(pitched) / len(resampled)
-            log.info('time stretch: stretching back to original length...')
-            pitched = librosa_time_stretch(pitched, ratio)
-            pass
-        else:
-            # Custom timestretch
-            ratio = len(pitched) / len(resampled)
-            log.info('time stretch: stretching back to original length...')
-            pitched = librosa_time_stretch(pitched, ratio)
-            log.info(f'running custom time stretch of rate: {custom_time_stretch}')
-            pitched = librosa_time_stretch(pitched, custom_time_stretch)
-
-
-        # TODO: retest output against freq aliased sinc fn
-        # oversample again (default factor of 4) to simulate ZOH
-        post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER, log)
-
-        # NOTE: why use scipy above and librosa here?
-        #       check git history to see if there was a note about this
-        output = librosa_resample(
-                    np_asfortranarray(post_zero_order_hold),
-                    orig_sr=SP_SR * ZOH_MULTIPLIER,
-                    target_sr=OUTPUT_SR
-                )
-
-        if output_filter:
-            if output_filter_type == OUTPUT_FILTER_TYPES[0]:
-                # lp eq filter, like outputs 3, 4, 5 & 6
-                output = filter_output(output, OUTPUT_SR, log)
-            else:
-                # moog vcf, for kicks, like outputs 1 & 2
-                mf = MoogFilter(sample_rate=OUTPUT_SR, cutoff=moog_output_filter_cutoff)
-                output = mf.process(output)
-        else:
-            # unfiltered like outputs 7 & 8
-            log.info('skipping output eq filter')
-
-        return output
-
-
-    def write_audio(output, output_file):
-
-        log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} with normalize_output set to {normalize_output}')
-
-        if normalize_output:
-            output = librosa_normalize(output)
-
-        if '.mp3' in output_file:
-            write_mp3(output_file, output, OUTPUT_SR)
-        elif '.wav' in output_file:
-            sf_write(output_file, output, OUTPUT_SR, subtype='PCM_16')
-        elif '.ogg' in output_file:
-            sf_write(output_file, output, OUTPUT_SR, format='ogg', subtype='vorbis')
-        elif '.flac' in output_file:
-            sf_write(output_file, output, OUTPUT_SR, format='flac', subtype='PCM_16')
-        else:
-            log.error(f'Output file type unsupported or unrecognized, saving to {output_file}.wav')
-            sf_write(output_file + '.wav', output, OUTPUT_SR, subtype='PCM_16')
-
-        log.info(f'done writing output_file at: {output_file}')
-        return
-
-
     log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
     y, s = librosa_load(input_file, sr=INPUT_SR, mono=force_mono)
 
-    # NOTE: temporary implementation for preserve stereo below
-    # - some above fns are incompatible with stereo input currently
-    #   - definitely quantize, zoh too i think, maybe more
-    # - just processing both channels entirely seperately for now
-    #   then stitching back together
-    # - processing stereo file all in one go should be doable though
-
-    if y.ndim == 2:
+    if y.ndim == 2:  # stereo
         y1 = y[0]
         y2 = y[1]
 
         log.info('processing stereo channels seperately')
         log.info('processing channel 1')
-        y1 = process_array(y1)
+        y1 = process_array(
+            y1, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+        )
         log.info('processing channel 2')
-        y2 = process_array(y2)
-
+        y2 = process_array(
+            y2, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+        )
         y = np_hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
-        write_audio(y, output_file)
-    else:
-        y = process_array(y)
-        write_audio(y, output_file)
+        write_audio(y, output_file, normalize_output, log)
+    else:  # mono
+        y = process_array(
+            y, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+        )
+        write_audio(y, output_file, normalize_output, log)
 
 
 if __name__ == '__main__':
