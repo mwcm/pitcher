@@ -197,6 +197,8 @@ def write_mp3(f, x, sr, normalize_output=False):
     return
 
 
+# remember add force-mono when going back to preserve stereo channels if exist
+# --force-mono                - convert stereo output to mono,                         flag,   default False
 def pitch(
         st: int,
         input_file: str,

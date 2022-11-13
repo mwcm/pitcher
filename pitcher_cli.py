@@ -3,6 +3,8 @@
 import click
 from pitcher import pitch, OUTPUT_FILTER_TYPES
 
+#@click.option('--force-mono',                 is_flag=True, default=False)
+
 @click.command()
 @click.option('--st',                         type=int,     default=0, help='number of semitones to shift')
 @click.option('--input-file',                 type=str,     required=True)
@@ -13,7 +15,6 @@ from pitcher import pitch, OUTPUT_FILTER_TYPES
 @click.option('--time-stretch',               is_flag=True, default=True)
 @click.option('--output-filter',              is_flag=True, default=True)
 @click.option('--normalize-output',           is_flag=True, default=False)
-@click.option('--force-mono',                 is_flag=True, default=False)
 @click.option('--quantize-bits',              type=int,     default=12, help='bit rate of quantized output')
 @click.option('--custom-time-stretch',        type=float,   default=1.0)
 @click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default=OUTPUT_FILTER_TYPES[0], case_sensitive=False)
@@ -28,7 +29,6 @@ def cli_wrapper(
         time_stretch=True,
         output_filter=True,
         normalize_output=False, 
-        force_mono=False,
         quantize_bits=12,
         custom_time_stretch=1.0,
         output_filter_type=OUTPUT_FILTER_TYPES[0],
@@ -44,7 +44,6 @@ def cli_wrapper(
         time_stretch=time_stretch,
         output_filter=output_filter,
         normalize_output=normalize_output,
-        force_mono=force_mono,
         quantize_bits=quantize_bits,
         custom_time_stretch=custom_time_stretch,
         output_filter_type=output_filter_type,
