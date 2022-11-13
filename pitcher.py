@@ -187,7 +187,7 @@ def q(x, S, bits, log):
 def write_mp3(f, x, sr):
     """numpy array to MP3"""
     channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
-    # zoh converts to float32, looks normalized
+    # zoh converts to float32, when librosa normalized not selected y still within [-1,1] by here
     y = np_int16(x * 2 ** 15)
     song = AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
     song.export(f, format="mp3", bitrate="320k")
