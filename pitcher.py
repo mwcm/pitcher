@@ -35,7 +35,7 @@ from numpy import round          as np_round
 
 from pydub import AudioSegment
 
-from audiofile import write as audiofile_write
+from soundfile import write as sf_write
 
 from librosa import load                 as librosa_load
 from librosa.core import resample        as librosa_resample
@@ -184,14 +184,10 @@ def q(x, S, bits, log):
 
 
 # https://stackoverflow.com/questions/53633177/how-to-read-a-mp3-audio-file-into-a-numpy-array-save-a-numpy-array-to-mp3
-def write_mp3(f, x, sr, normalize_output=False):
+def write_mp3(f, x, sr):
     """numpy array to MP3"""
     channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
-
-    if normalize_output:
-        x = librosa_normalize(x)
-
-    # zoh converts to float32, normalized?
+    # zoh converts to float32, looks normalized
     y = np_int16(x * 2 ** 15)
     song = AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
     song.export(f, format="mp3", bitrate="320k")
@@ -233,27 +229,6 @@ def pitch(
     if output_filter_type not in OUTPUT_FILTER_TYPES:
         log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
         log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
-
-    def write_audio(output, output_file):
-
-        log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
-                f'with normalize_output set to {normalize_output}')
-
-        if '.mp3' in output_file:
-            write_mp3(output_file, output, OUTPUT_SR, normalize_output)
-        else:
-            if output.ndim == 2:
-                print(output)
-                from numpy import shape as np_shape
-                print(np_shape(output)[0])
-                print(np_shape(output)[1])
-                
-                audiofile_write(output_file, output, OUTPUT_SR, 16, normalize_output)
-            else:
-                audiofile_write(output_file, output, OUTPUT_SR, 16, normalize_output)
-
-        log.info(f'done! output_file at: {output_file}')
-        return
 
     def process_array(y):
         log.info('done loading')
@@ -321,6 +296,29 @@ def pitch(
         return output
 
 
+    def write_audio(output, output_file):
+
+        log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} with normalize_output set to {normalize_output}')
+
+        if normalize_output:
+            output = librosa_normalize(output)
+
+        if '.mp3' in output_file:
+            write_mp3(output_file, output, OUTPUT_SR)
+        elif '.wav' in output_file:
+            sf_write(output_file, output, OUTPUT_SR, subtype='PCM_16')
+        elif '.ogg' in output_file:
+            sf_write(output_file, output, OUTPUT_SR, format='ogg', subtype='vorbis')
+        elif '.flac' in output_file:
+            sf_write(output_file, output, OUTPUT_SR, format='flac', subtype='PCM_16')
+        else:
+            log.error(f'Output file type unsupported or unrecognized, saving to {output_file}.wav')
+            sf_write(output_file + '.wav', output, OUTPUT_SR, subtype='PCM_16')
+
+        log.info(f'done writing output_file at: {output_file}')
+        return
+
+
     log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
     y, s = librosa_load(input_file, sr=INPUT_SR, mono=force_mono)
 
@@ -330,11 +328,6 @@ def pitch(
     # - just processing both channels entirely seperately for now
     #   then stitching back together
     # - processing stereo file all in one go should be doable though
-
-    
-    
-    # NOTE not working for wav output, expecting different array order, 
-    #      audiofile_write expects [channels, samples], provided is oposite
 
     if y.ndim == 2:
         y1 = y[0]
@@ -347,7 +340,6 @@ def pitch(
         y2 = process_array(y2)
 
         y = np_hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
-
         write_audio(y, output_file)
     else:
         y = process_array(y)
