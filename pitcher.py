@@ -232,6 +232,8 @@ def pitch(
         log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
 
     log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
+
+    # TODO mono=False
     y, s = librosa_load(input_file, sr=INPUT_SR)
     log.info('done loading')
 
@@ -303,7 +305,7 @@ def pitch(
         write_mp3(output_file, output, OUTPUT_SR, normalize_output)
     else:
         output_file = output_file
-        audiofile_write(output_file, output, OUTPUT_SR, '16bit', normalize_output)
+        audiofile_write(output_file, output, OUTPUT_SR, 16, normalize_output)
 
     log.info(f'done! output_file at: {output_file}')
     return

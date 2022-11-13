@@ -40,6 +40,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 --time-stretch              - enable or disable time_shift entirely,                 flag,   default True
 --output-filter             - skip all output filtering (default and moog),          flag,   default True
 --normalize-output          - normalize output volume to ,                           flag,   default False
+--force-mono                - convert stereo output to mono,                         flag,   default False
 --quantize-bits             - bit rate of quantized output,                          int,    default 12
 --custom-time-stretch       - custom shift, 1.0 for device default, 0.0 for none,    float,  default 1.0
 --output-filter-type        - LP or MoogLP,                                          str,    default 'LP'
