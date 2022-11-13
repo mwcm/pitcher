@@ -129,7 +129,8 @@ def gui():
             quantize_bits=int(float(get_current_bit_value())),
             custom_time_stretch=1.0,
             output_filter_type=OUTPUT_FILTER_TYPES[0],
-            moog_output_filter_cutoff=10000
+            moog_output_filter_cutoff=10000,
+            force_mono=False
         )
     )
 

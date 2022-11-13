@@ -27,6 +27,7 @@ from numpy import arange         as np_arange
 from numpy import array          as np_array
 from numpy import asarray        as np_asarray
 from numpy import asfortranarray as np_asfortranarray
+from numpy import hstack         as np_hstack
 from numpy import linspace       as np_linspace
 from numpy import power          as np_power
 from numpy import repeat         as np_repeat
@@ -34,7 +35,7 @@ from numpy import round          as np_round
 
 from pydub import AudioSegment
 
-from audiofile import write as audiofile_write
+from soundfile import write as sf_write
 
 from librosa import load                 as librosa_load
 from librosa.core import resample        as librosa_resample
@@ -127,10 +128,10 @@ def filter_input(x, log):
     return y
 
 
-# TODO: make another "rolled back" LP setting to sim outputs 5,6 w/ 10,000 cutoff
-# NOTE: could use sosfiltfilt for zero phase filtering, but it doubles filter order
 def filter_output(x, sample_rate, log):
     log.info('applying output eq filter')
+    # TODO: make another "rolled back" LP setting to sim outputs 5,6 w/ 10,000 cutoff
+    # NOTE: could use sosfiltfilt for zero phase filtering, but it doubles filter order
     freq = np_array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
     att = np_array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
     gain = np_power(10, att/20)
@@ -183,60 +184,30 @@ def q(x, S, bits, log):
 
 
 # https://stackoverflow.com/questions/53633177/how-to-read-a-mp3-audio-file-into-a-numpy-array-save-a-numpy-array-to-mp3
-def write_mp3(f, x, sr, normalize_output=False):
+def write_mp3(f, x, sr):
     """numpy array to MP3"""
     channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
-
-    if normalize_output:
-        x = librosa_normalize(x)
-
-    # zoh converts to float32, normalized?
+    # zoh converts to float32, when librosa normalized not selected y still within [-1,1] by here
     y = np_int16(x * 2 ** 15)
     song = AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
     song.export(f, format="mp3", bitrate="320k")
     return
 
 
-# remember add force-mono when going back to preserve stereo channels if exist
-# --force-mono                - convert stereo output to mono,                         flag,   default False
-def pitch(
-        st: int,
-        input_file: str,
-        output_file: str,
-        log_level: str,
-        input_filter=True,
-        quantize=True,
-        time_stretch=True,
-        output_filter=True,
-        normalize_output=False,
-        quantize_bits=12,
-        custom_time_stretch=1.0,
-        output_filter_type=OUTPUT_FILTER_TYPES[0],
-        moog_output_filter_cutoff=10000
+def process_array(
+        y,
+        st,
+        input_filter,
+        quantize, 
+        time_stretch,
+        output_filter,
+        quantize_bits,
+        custom_time_stretch,
+        output_filter_type,
+        moog_output_filter_cutoff,
+        log
     ):
 
-    log = logging.getLogger(__name__)
-    sh = logging.StreamHandler()
-    sh.setFormatter(logging.Formatter('%(levelname)-8s %(message)s'))
-    log.addHandler(sh)
-
-    valid_levels = list(log_levels.keys())
-    if (not log_level) or (log_level.upper() not in valid_levels):
-        log.warn(f'Invalid log-level: "{log_level}", log-level set to "INFO", '
-                 f'valid log levels are {valid_levels}')
-        log_level = 'INFO'
-
-    log_level = log_levels[log_level]
-    log.setLevel(log_level)
-
-    if output_filter_type not in OUTPUT_FILTER_TYPES:
-        log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
-        log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
-
-    log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
-
-    # TODO mono=False
-    y, s = librosa_load(input_file, sr=INPUT_SR)
     log.info('done loading')
 
     midrise, midtread = calc_quantize_function(quantize_bits, log)
@@ -299,18 +270,93 @@ def pitch(
         # unfiltered like outputs 7 & 8
         log.info('skipping output eq filter')
 
+    return output
 
-    log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
-             f'with normalize_output set to {normalize_output}')
+
+def write_audio(output, output_file, normalize_output, log):
+
+    log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} with normalize_output set to {normalize_output}')
+
+    if normalize_output:
+        output = librosa_normalize(output)
 
     if '.mp3' in output_file:
-        write_mp3(output_file, output, OUTPUT_SR, normalize_output)
+        write_mp3(output_file, output, OUTPUT_SR)
+    elif '.wav' in output_file:
+        sf_write(output_file, output, OUTPUT_SR, subtype='PCM_16')
+    elif '.ogg' in output_file:
+        sf_write(output_file, output, OUTPUT_SR, format='ogg', subtype='vorbis')
+    elif '.flac' in output_file:
+        sf_write(output_file, output, OUTPUT_SR, format='flac', subtype='PCM_16')
     else:
-        output_file = output_file
-        audiofile_write(output_file, output, OUTPUT_SR, 16, normalize_output)
+        log.error(f'Output file type unsupported or unrecognized, saving to {output_file}.wav')
+        sf_write(output_file + '.wav', output, OUTPUT_SR, subtype='PCM_16')
 
-    log.info(f'done! output_file at: {output_file}')
+    log.info(f'done writing output_file at: {output_file}')
     return
+
+
+def pitch(
+        st: int,
+        input_file: str,
+        output_file: str,
+        log_level: str,
+        input_filter=True,
+        quantize=True,
+        time_stretch=True,
+        output_filter=True,
+        normalize_output=False,
+        quantize_bits=12,
+        custom_time_stretch=1.0,
+        output_filter_type=OUTPUT_FILTER_TYPES[0],
+        moog_output_filter_cutoff=10000,
+        force_mono=False
+    ):
+
+    log = logging.getLogger(__name__)
+    sh = logging.StreamHandler()
+    sh.setFormatter(logging.Formatter('%(levelname)-8s %(message)s'))
+    log.addHandler(sh)
+
+    valid_levels = list(log_levels.keys())
+    if (not log_level) or (log_level.upper() not in valid_levels):
+        log.warn(f'Invalid log-level: "{log_level}", log-level set to "INFO", '
+                 f'valid log levels are {valid_levels}')
+        log_level = 'INFO'
+
+    log_level = log_levels[log_level]
+    log.setLevel(log_level)
+
+    if output_filter_type not in OUTPUT_FILTER_TYPES:
+        log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
+        log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
+
+    log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
+    y, s = librosa_load(input_file, sr=INPUT_SR, mono=force_mono)
+
+    if y.ndim == 2:  # stereo
+        y1 = y[0]
+        y2 = y[1]
+
+        log.info('processing stereo channels seperately')
+        log.info('processing channel 1')
+        y1 = process_array(
+            y1, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+        )
+        log.info('processing channel 2')
+        y2 = process_array(
+            y2, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+        )
+        y = np_hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
+        write_audio(y, output_file, normalize_output, log)
+    else:  # mono
+        y = process_array(
+            y, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+        )
+        write_audio(y, output_file, normalize_output, log)
 
 
 if __name__ == '__main__':

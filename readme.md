@@ -44,6 +44,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 --custom-time-stretch       - custom shift, 1.0 for device default, 0.0 for none,    float,  default 1.0
 --output-filter-type        - LP or MoogLP,                                          str,    default 'LP'
 --moog-output-filter-cutoff - set cutoff for moog SSM2044 approximation,             int,    default 10000
+--force-mono                - convert stereo output to mono,                         flag,   default False
 ```
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
