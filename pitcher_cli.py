@@ -19,20 +19,22 @@ from pitcher import pitch, OUTPUT_FILTER_TYPES
 @click.option('--custom-time-stretch',        type=float,   default=1.0)
 @click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default=OUTPUT_FILTER_TYPES[0], case_sensitive=False)
 @click.option('--moog-output-filter-cutoff',  type=int,     default=10000)
+@click.option('--force_mono',                 is_flag=True, default=False)
 def cli_wrapper(
         st,
         input_file,
         output_file,
-        log_level='INFO',
-        input_filter=True,
-        quantize=True,
-        time_stretch=True,
-        output_filter=True,
-        normalize_output=False, 
-        quantize_bits=12,
-        custom_time_stretch=1.0,
-        output_filter_type=OUTPUT_FILTER_TYPES[0],
-        moog_output_filter_cutoff=10000
+        log_level,
+        input_filter,
+        quantize,
+        time_stretch,
+        output_filter,
+        normalize_output, 
+        quantize_bits,
+        custom_time_stretch,
+        output_filter_type,
+        moog_output_filter_cutoff,
+        force_mono
     ):
     pitch(
         st=st,
@@ -47,7 +49,8 @@ def cli_wrapper(
         quantize_bits=quantize_bits,
         custom_time_stretch=custom_time_stretch,
         output_filter_type=output_filter_type,
-        moog_output_filter_cutoff=moog_output_filter_cutoff
+        moog_output_filter_cutoff=moog_output_filter_cutoff,
+        force_mono=force_mono
     )
     return
 

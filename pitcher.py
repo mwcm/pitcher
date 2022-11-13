@@ -27,6 +27,7 @@ from numpy import arange         as np_arange
 from numpy import array          as np_array
 from numpy import asarray        as np_asarray
 from numpy import asfortranarray as np_asfortranarray
+from numpy import hstack         as np_hstack
 from numpy import linspace       as np_linspace
 from numpy import power          as np_power
 from numpy import repeat         as np_repeat
@@ -198,7 +199,6 @@ def write_mp3(f, x, sr, normalize_output=False):
 
 
 # remember add force-mono when going back to preserve stereo channels if exist
-# --force-mono                - convert stereo output to mono,                         flag,   default False
 def pitch(
         st: int,
         input_file: str,
@@ -212,7 +212,8 @@ def pitch(
         quantize_bits=12,
         custom_time_stretch=1.0,
         output_filter_type=OUTPUT_FILTER_TYPES[0],
-        moog_output_filter_cutoff=10000
+        moog_output_filter_cutoff=10000,
+        force_mono=False
     ):
 
     log = logging.getLogger(__name__)
@@ -233,84 +234,124 @@ def pitch(
         log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
         log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
 
-    log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
+    def write_audio(output, output_file):
 
-    # TODO mono=False
-    y, s = librosa_load(input_file, sr=INPUT_SR)
-    log.info('done loading')
+        log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
+                f'with normalize_output set to {normalize_output}')
 
-    midrise, midtread = calc_quantize_function(quantize_bits, log)
-
-    if input_filter:
-        y = filter_input(y, log)
-    else:
-        log.info('skipping input anti aliasing filter')
-
-    resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER, log)
-
-    if quantize:
-        # TODO: midrise option?
-        # simulate analog -> digital conversion
-        resampled = q(resampled, midtread, quantize_bits, log)
-    else:
-        log.info('skipping quantize')
-
-    pitched = adjust_pitch(resampled, st, log)
-
-    if ((custom_time_stretch == 1.0) and (time_stretch == True)):
-        # Default SP-12 timestretch inherent w/ adjust_pitch
-        pass
-    elif ((custom_time_stretch == 0.0) or (time_stretch == False)):
-        # No timestretch (e.g. original audio length):
-        ratio = len(pitched) / len(resampled)
-        log.info('time stretch: stretching back to original length...')
-        pitched = librosa_time_stretch(pitched, ratio)
-        pass
-    else:
-        # Custom timestretch
-        ratio = len(pitched) / len(resampled)
-        log.info('time stretch: stretching back to original length...')
-        pitched = librosa_time_stretch(pitched, ratio)
-        log.info(f'running custom time stretch of rate: {custom_time_stretch}')
-        pitched = librosa_time_stretch(pitched, custom_time_stretch)
-
-
-    # TODO: retest output against freq aliased sinc fn
-    # oversample again (default factor of 4) to simulate ZOH
-    post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER, log)
-
-    # NOTE: why use scipy above and librosa here?
-    #       check git history to see if there was a note about this
-    output = librosa_resample(
-                np_asfortranarray(post_zero_order_hold),
-                orig_sr=SP_SR * ZOH_MULTIPLIER,
-                target_sr=OUTPUT_SR
-            )
-
-    if output_filter:
-        if output_filter_type == OUTPUT_FILTER_TYPES[0]:
-            # lp eq filter, like outputs 3, 4, 5 & 6
-            output = filter_output(output, OUTPUT_SR, log)
+        if '.mp3' in output_file:
+            write_mp3(output_file, output, OUTPUT_SR, normalize_output)
         else:
-            # moog vcf, for kicks, like outputs 1 & 2
-            mf = MoogFilter(sample_rate=OUTPUT_SR, cutoff=moog_output_filter_cutoff)
-            output = mf.process(output)
+            if output.ndim == 2:
+                print(output)
+                from numpy import shape as np_shape
+                print(np_shape(output)[0])
+                print(np_shape(output)[1])
+                
+                audiofile_write(output_file, output, OUTPUT_SR, 16, normalize_output)
+            else:
+                audiofile_write(output_file, output, OUTPUT_SR, 16, normalize_output)
+
+        log.info(f'done! output_file at: {output_file}')
+        return
+
+    def process_array(y):
+        log.info('done loading')
+
+        midrise, midtread = calc_quantize_function(quantize_bits, log)
+
+        if input_filter:
+            y = filter_input(y, log)
+        else:
+            log.info('skipping input anti aliasing filter')
+
+        resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER, log)
+
+        if quantize:
+            # TODO: midrise option?
+            # simulate analog -> digital conversion
+            resampled = q(resampled, midtread, quantize_bits, log)
+        else:
+            log.info('skipping quantize')
+
+        pitched = adjust_pitch(resampled, st, log)
+
+        if ((custom_time_stretch == 1.0) and (time_stretch == True)):
+            # Default SP-12 timestretch inherent w/ adjust_pitch
+            pass
+        elif ((custom_time_stretch == 0.0) or (time_stretch == False)):
+            # No timestretch (e.g. original audio length):
+            ratio = len(pitched) / len(resampled)
+            log.info('time stretch: stretching back to original length...')
+            pitched = librosa_time_stretch(pitched, ratio)
+            pass
+        else:
+            # Custom timestretch
+            ratio = len(pitched) / len(resampled)
+            log.info('time stretch: stretching back to original length...')
+            pitched = librosa_time_stretch(pitched, ratio)
+            log.info(f'running custom time stretch of rate: {custom_time_stretch}')
+            pitched = librosa_time_stretch(pitched, custom_time_stretch)
+
+
+        # TODO: retest output against freq aliased sinc fn
+        # oversample again (default factor of 4) to simulate ZOH
+        post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER, log)
+
+        # NOTE: why use scipy above and librosa here?
+        #       check git history to see if there was a note about this
+        output = librosa_resample(
+                    np_asfortranarray(post_zero_order_hold),
+                    orig_sr=SP_SR * ZOH_MULTIPLIER,
+                    target_sr=OUTPUT_SR
+                )
+
+        if output_filter:
+            if output_filter_type == OUTPUT_FILTER_TYPES[0]:
+                # lp eq filter, like outputs 3, 4, 5 & 6
+                output = filter_output(output, OUTPUT_SR, log)
+            else:
+                # moog vcf, for kicks, like outputs 1 & 2
+                mf = MoogFilter(sample_rate=OUTPUT_SR, cutoff=moog_output_filter_cutoff)
+                output = mf.process(output)
+        else:
+            # unfiltered like outputs 7 & 8
+            log.info('skipping output eq filter')
+
+        return output
+
+
+    log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
+    y, s = librosa_load(input_file, sr=INPUT_SR, mono=force_mono)
+
+    # NOTE: temporary implementation for preserve stereo below
+    # - some above fns are incompatible with stereo input currently
+    #   - definitely quantize, zoh too i think, maybe more
+    # - just processing both channels entirely seperately for now
+    #   then stitching back together
+    # - processing stereo file all in one go should be doable though
+
+    
+    
+    # NOTE not working for wav output, expecting different array order, 
+    #      audiofile_write expects [channels, samples], provided is oposite
+
+    if y.ndim == 2:
+        y1 = y[0]
+        y2 = y[1]
+
+        log.info('processing stereo channels seperately')
+        log.info('processing channel 1')
+        y1 = process_array(y1)
+        log.info('processing channel 2')
+        y2 = process_array(y2)
+
+        y = np_hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
+
+        write_audio(y, output_file)
     else:
-        # unfiltered like outputs 7 & 8
-        log.info('skipping output eq filter')
-
-
-    log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} '
-             f'with normalize_output set to {normalize_output}')
-
-    if '.mp3' in output_file:
-        write_mp3(output_file, output, OUTPUT_SR, normalize_output)
-    else:
-        output_file = output_file
-        audiofile_write(output_file, output, OUTPUT_SR, 16, normalize_output)
-
-    log.info(f'done! output_file at: {output_file}')
-    return
+        y = process_array(y)
+        write_audio(y, output_file)
 
 
 if __name__ == '__main__':
