@@ -53,7 +53,6 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 ### Current TODO:
 - add all options to GUI
 - scipy resample vs librosa resample and usages (git history? comments?)
-- second "rolled back" LP filter option for fc @ 10kHz
 
 ### Future TODO:
 - smaller exe size
