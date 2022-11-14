@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Pitcher v 0.5
 # Copyright (C) 2020 Morgan Mitchell
 # Based on: Physical and Behavioral Circuit Modeling of the SP-12, DT Yeh, 2007
@@ -16,6 +15,7 @@ from scipy.signal import tf2sos   as sp_tf2sos
 from scipy.signal import firwin2  as sp_firwin2
 from scipy.signal import resample as sp_resample
 from scipy.signal import decimate as sp_decimate
+from scipy.signal import butter   as sp_butter
 
 from scipy.spatial import cKDTree as sp_cKDTree
 
@@ -54,23 +54,36 @@ OUTPUT_SR = 48000
 # NOTE: sp-1200 rate 26040, sp-12 rate 27500
 SP_SR = 26040
 
-OUTPUT_FILTER_TYPES = ['LP', 'Moog']
+OUTPUT_FILTER_TYPES = [
+    'Lowpass fc @ 7.5kHz', 
+    'Lowpass fc @ 10kHz', 
+    'Lowpass - Moog VCF'
+]
 
 POSITIVE_TUNING_RATIO = 1.02930223664
-NEGATIVE_TUNING_RATIOS = {-1: 1.05652677103003,
-                          -2: 1.1215356033380033,
-                          -3: 1.1834835840896631,
-                          -4: 1.253228360845465,
-                          -5: 1.3310440397149297,
-                          -6: 1.4039714929646099,
-                          -7: 1.5028019735639886,
-                          -8: 1.5766735700797954}
+NEGATIVE_TUNING_RATIOS = {
+    -1: 1.05652677103003,
+    -2: 1.1215356033380033,
+    -3: 1.1834835840896631,
+    -4: 1.253228360845465,
+    -5: 1.3310440397149297,
+    -6: 1.4039714929646099,
+    -7: 1.5028019735639886,
+    -8: 1.5766735700797954
+}
 
-log_levels = {'INFO':     logging.INFO,
-              'DEBUG':    logging.DEBUG,
-              'WARNING':  logging.WARNING,
-              'ERROR':    logging.ERROR,
-              'CRITICAL': logging.CRITICAL}
+log_levels = {
+    'INFO':     logging.INFO,
+    'DEBUG':    logging.DEBUG,
+    'WARNING':  logging.WARNING,
+    'ERROR':    logging.ERROR,
+    'CRITICAL': logging.CRITICAL
+}
+
+log = logging.getLogger(__name__)
+sh = logging.StreamHandler()
+sh.setFormatter(logging.Formatter('%(levelname)-8s %(message)s'))
+log.addHandler(sh)
 
 
 if platform == "darwin":
@@ -79,7 +92,7 @@ if platform == "darwin":
         AudioSegment.converter = '/usr/local/bin/ffmpeg'
 
 
-def calc_quantize_function(quantize_bits, log):
+def calc_quantize_function(quantize_bits):
     # https://dspillustrations.com/pages/posts/misc/quantization-and-quantization-noise.html
     log.info(f'calculating quantize fn with {quantize_bits} quantize bits')
     u = 1  # max amplitude to quantize
@@ -91,7 +104,7 @@ def calc_quantize_function(quantize_bits, log):
     return s_midrise, s_midtread
 
 
-def adjust_pitch(x, st, log):
+def adjust_pitch(x, st):
     log.info(f'adjusting audio pitch by {st} semitones')
     t = 0
     if (0 > st >= -8):
@@ -100,7 +113,9 @@ def adjust_pitch(x, st, log):
         t = POSITIVE_TUNING_RATIO ** -st
     elif st == 0:  # no change
         return x
-    else:  # -8 > st: extrapolate, seems to lose a few points of precision?
+    else: # -8 > st
+        # output tuning will loses precision/accuracy the further
+        # we extrapolate from the device tuning ratios
         f = sp_interp1d(
                 list(NEGATIVE_TUNING_RATIOS.keys()),
                 list(NEGATIVE_TUNING_RATIOS.values()),
@@ -117,21 +132,20 @@ def adjust_pitch(x, st, log):
     return pitched
 
 
-def filter_input(x, log):
+def filter_input(x):
     log.info('applying anti aliasing filter')
-    # NOTE: approximating the anti aliasing filter, don't think this needs to be
-    #       perfect since at fs/2=13.02kHz only -10dB attenuation, might be able to
-    #       improve accuracy in the 15 -> 20kHz range with firwin?
+    # NOTE: Might be able to improve accuracy in the 15 -> 20kHz range with firwin?
+    #       Close already, could perfect it at some point, probably not super important now.
     f = sp_ellip(4, 1, 72, 0.666, analog=False, output='sos')
     y = sp_sosfilt(f, x)
     log.info('done applying anti aliasing filter')
     return y
 
 
-def filter_output(x, sample_rate, log):
-    log.info('applying output eq filter')
-    # TODO: make another "rolled back" LP setting to sim outputs 5,6 w/ 10,000 cutoff
-    # NOTE: could use sosfiltfilt for zero phase filtering, but it doubles filter order
+def lp1(x, sample_rate):
+    log.info(f'applying output eq filter {OUTPUT_FILTER_TYPES[0]}')
+    # follows filter curve shown on slide 3
+    # cutoff @ 7.5kHz
     freq = np_array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
     att = np_array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
     gain = np_power(10, att/20)
@@ -142,7 +156,17 @@ def filter_output(x, sample_rate, log):
     return y
 
 
-def scipy_resample(y, input_sr, target_sr, factor, log):
+def lp2(x, sample_rate):
+    log.info(f'applying output eq filter {OUTPUT_FILTER_TYPES[1]}')
+    fc = 10000
+    w = fc / (sample_rate / 2)
+    sos = sp_butter(7, w, output='sos')
+    y = sp_sosfilt(sos, x)
+    log.info('done applying output eq filter')
+    return y
+
+
+def scipy_resample(y, input_sr, target_sr, factor):
     ''' resample from input_sr to target_sr_multiple/factor'''
     log.info(f'resampling audio to sample rate of {target_sr * factor}')
     seconds = len(y)/input_sr
@@ -156,9 +180,9 @@ def scipy_resample(y, input_sr, target_sr, factor, log):
     return decimated
 
 
-def zero_order_hold(y, zoh_multiplier, log):
-    log.info(f'applying zero order hold of {zoh_multiplier}')
+def zero_order_hold(y, zoh_multiplier):
     # NOTE: could also try a freq aliased sinc filter
+    log.info(f'applying zero order hold of {zoh_multiplier}')
     # intentionally oversample by repeating each sample 4 times
     zoh_applied = np_repeat(y, zoh_multiplier).astype(np_float32)
     log.info('done applying zero order hold')
@@ -172,7 +196,7 @@ def nearest_values(x, y):
     return ordered_neighbors
 
 
-def q(x, S, bits, log):
+def q(x, S, bits):
     # NOTE: no audible difference after audacity invert test @ 12 bits
     #       however, when plotted the scaled amplitude of quantized audio is
     #       noticeably higher than old implementation, leaving for now
@@ -204,29 +228,28 @@ def process_array(
         quantize_bits,
         custom_time_stretch,
         output_filter_type,
-        moog_output_filter_cutoff,
-        log
+        moog_output_filter_cutoff
     ):
 
     log.info('done loading')
 
-    midrise, midtread = calc_quantize_function(quantize_bits, log)
+    midrise, midtread = calc_quantize_function(quantize_bits)
 
     if input_filter:
-        y = filter_input(y, log)
+        y = filter_input(y)
     else:
         log.info('skipping input anti aliasing filter')
 
-    resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER, log)
+    resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER)
 
     if quantize:
-        # TODO: midrise option?
+        # TODO: expose midrise option?
         # simulate analog -> digital conversion
-        resampled = q(resampled, midtread, quantize_bits, log)
+        resampled = q(resampled, midtread, quantize_bits)
     else:
         log.info('skipping quantize')
 
-    pitched = adjust_pitch(resampled, st, log)
+    pitched = adjust_pitch(resampled, st)
 
     if ((custom_time_stretch == 1.0) and (time_stretch == True)):
         # Default SP-12 timestretch inherent w/ adjust_pitch
@@ -245,10 +268,8 @@ def process_array(
         log.info(f'running custom time stretch of rate: {custom_time_stretch}')
         pitched = librosa_time_stretch(pitched, custom_time_stretch)
 
-
-    # TODO: retest output against freq aliased sinc fn
     # oversample again (default factor of 4) to simulate ZOH
-    post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER, log)
+    post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER)
 
     # NOTE: why use scipy above and librosa here?
     #       check git history to see if there was a note about this
@@ -260,10 +281,13 @@ def process_array(
 
     if output_filter:
         if output_filter_type == OUTPUT_FILTER_TYPES[0]:
-            # lp eq filter, like outputs 3, 4, 5 & 6
-            output = filter_output(output, OUTPUT_SR, log)
+            # lp eq filter cutoff @ 7.5kHz, SP outputs 3 & 4
+            output = lp1(output, OUTPUT_SR)
+        elif output_filter_type == OUTPUT_FILTER_TYPES[1]:
+            # lp eq filter cutoff @ 10kHz, SP outputs 5 & 6
+            output = lp2(output, OUTPUT_SR)
         else:
-            # moog vcf, for kicks, like outputs 1 & 2
+            # moog vcf approximation, SP outputs 1 & 2 originally used for kicks
             mf = MoogFilter(sample_rate=OUTPUT_SR, cutoff=moog_output_filter_cutoff)
             output = mf.process(output)
     else:
@@ -273,7 +297,7 @@ def process_array(
     return output
 
 
-def write_audio(output, output_file, normalize_output, log):
+def write_audio(output, output_file, normalize_output):
 
     log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} with normalize_output set to {normalize_output}')
 
@@ -313,11 +337,6 @@ def pitch(
         force_mono=False
     ):
 
-    log = logging.getLogger(__name__)
-    sh = logging.StreamHandler()
-    sh.setFormatter(logging.Formatter('%(levelname)-8s %(message)s'))
-    log.addHandler(sh)
-
     valid_levels = list(log_levels.keys())
     if (not log_level) or (log_level.upper() not in valid_levels):
         log.warn(f'Invalid log-level: "{log_level}", log-level set to "INFO", '
@@ -342,21 +361,21 @@ def pitch(
         log.info('processing channel 1')
         y1 = process_array(
             y1, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
-            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff
         )
         log.info('processing channel 2')
         y2 = process_array(
             y2, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
-            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff
         )
         y = np_hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
-        write_audio(y, output_file, normalize_output, log)
+        write_audio(y, output_file, normalize_output)
     else:  # mono
         y = process_array(
             y, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
-            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, log
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff
         )
-        write_audio(y, output_file, normalize_output, log)
+        write_audio(y, output_file, normalize_output)
 
 
 if __name__ == '__main__':
