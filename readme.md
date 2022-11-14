@@ -42,7 +42,8 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 --normalize-output          - normalize output volume to ,                           flag,   default False
 --quantize-bits             - bit rate of quantized output,                          int,    default 12
 --custom-time-stretch       - custom shift, 1.0 for device default, 0.0 for none,    float,  default 1.0
---output-filter-type        - 'lp1', 'lp2' or 'moog', lp1 fc=7.5kHz, lp2 fc=10kHz    str,    default 'lp1'
+--output-filter-type        - 'lp1', 'lp2' or 'moog'                                 str,    default 'lp1
+                               lp1 cutoff = 7.5kHz, lp2 cutoff = 10kHz, moog=10kHz
 --moog-output-filter-cutoff - set cutoff for moog SSM2044 approximation,             int,    default 10000
 --force-mono                - convert input to mono, ouput will also be mono,        flag,   default False
 ```
@@ -55,13 +56,9 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - upload executables for mac + windows
 
 ### Future TODO:
-- tests
-- add options to GUI
-    - output_filter_type
-    - moog_output_filter_cutoff
-    - custom_time_stretch
-- re-organize gui elements
 - smaller exe size
-- dedicated 33rpm -> 45rpm pre-processing option
+- progress bar or some sort of loading indicator
+- dedicated 33rpm -> 45rpm pre-processing stretch option
+- could add moog_output_filter_cutoff slider and/or lp2 cutoff slider to gui
 - only use ffmpeg/libav when necessary
 - perfect high end input anti aliasing filter fit (close enough, not a priority for now)
