@@ -256,17 +256,17 @@ def process_array(
         pass
     elif ((custom_time_stretch == 0.0) or (time_stretch == False)):
         # No timestretch (e.g. original audio length):
-        ratio = len(pitched) / len(resampled)
+        rate = len(pitched) / len(resampled)
         log.info('time stretch: stretching back to original length...')
-        pitched = librosa_time_stretch(pitched, ratio)
+        pitched = librosa_time_stretch(pitched, rate=rate)
         pass
     else:
         # Custom timestretch
-        ratio = len(pitched) / len(resampled)
+        rate = len(pitched) / len(resampled)
         log.info('time stretch: stretching back to original length...')
-        pitched = librosa_time_stretch(pitched, ratio)
+        pitched = librosa_time_stretch(pitched, rate=rate)
         log.info(f'running custom time stretch of rate: {custom_time_stretch}')
-        pitched = librosa_time_stretch(pitched, custom_time_stretch)
+        pitched = librosa_time_stretch(pitched, rate=custom_time_stretch)
 
     # oversample again (default factor of 4) to simulate ZOH
     post_zero_order_hold = zero_order_hold(pitched, ZOH_MULTIPLIER)

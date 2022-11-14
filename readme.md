@@ -52,12 +52,12 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### Current TODO:
-- use askopensaveasfilename instead of askopen for outputfile
 - check why both scipy resample vs librosa resample used (git history? comments?)
 - upload executables for mac + windows
 
 ### Future TODO:
 - smaller exe size
+- progress bar or some sort of loading indicator
 - dedicated 33rpm -> 45rpm pre-processing stretch option
 - could add moog_output_filter_cutoff slider and/or lp2 cutoff slider to gui
 - only use ffmpeg/libav when necessary
