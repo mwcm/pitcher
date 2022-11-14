@@ -7,7 +7,7 @@ from pitcher import pitch, OUTPUT_FILTER_TYPES
 
 def gui():
     window = Tk()
-    window.geometry('600x400')
+    window.geometry('600x380')
     window.resizable(True, False)
     window.title('Pitcher')
 
@@ -23,12 +23,20 @@ def gui():
     def get_current_bit_value():
         return '{: .2f}'.format(current_bit_value.get())
 
-    # sliders
-    st_frame = Frame(window)
-    st_frame.pack(anchor='nw', side='left')
+    
+    top_frame = Frame(window)
+    middle_frame = Frame(window)
 
-    bit_frame = Frame(window)
-    bit_frame.pack(anchor='nw', side='left')
+    top_frame.pack(side='top', fill='x')
+    middle_frame.pack(side='top', fill='x')
+
+
+    # sliders
+    st_frame = Frame(top_frame)
+    st_frame.pack(anchor='nw', side='left', padx=20, pady=10)
+
+    bit_frame = Frame(top_frame)
+    bit_frame.pack(anchor='nw', side='left', padx=20, pady=10)
 
     st_slider_label = Label(st_frame, text='Semitones:')
     st_slider_label.pack(side='top')
@@ -67,8 +75,8 @@ def gui():
     normalize_output = IntVar(value=0)
     force_mono       = IntVar(value=0)
 
-    c_frame = Frame(window)
-    c_frame.pack()
+    c_frame = Frame(top_frame)
+    c_frame.pack(padx=20, pady=60)
 
     input_filter_button     = Checkbutton(c_frame, text="Input Filter",     variable=input_filter)
     normalize_output_button = Checkbutton(c_frame, text="Normalize Output", variable=normalize_output)
@@ -84,25 +92,38 @@ def gui():
 
     # file input/output
 
-    io_frame = Frame(window)
-    io_frame.pack()
+    io_frame = Frame(middle_frame)
+    io_frame.pack(fill='x')
 
-    input_entry  = Entry(width=60)
-    output_entry = Entry(width=60)
+    i_frame = Frame(io_frame)
+    o_frame = Frame(io_frame)
+
+    i_frame.pack(fill='both', side='top', padx=20, pady=10)
+    o_frame.pack(fill='x', padx=20, pady=10)
+
+    input_entry  = Entry(i_frame, width=60)
+    output_entry = Entry(o_frame, width=60)
 
     def askopeninputfilename():
-        input_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=io_frame, title='Choose a file')
+        input_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=i_frame, title='Choose a file')
         input_entry.delete(0, END)
         input_entry.insert(0, input_file)
 
     # TODO: use asksaveasfilename instead
     def askopenoutputfilename():
-        output_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=io_frame, title='Choose a file')
+        output_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=o_frame, title='Choose a file')
         output_entry.delete(0, END)
         output_entry.insert(0, output_file)
 
-    input_browse_button = Button(window, text='Input File', command=askopeninputfilename, width=16)
-    output_browse_button = Button(window, text='Output File', command=askopenoutputfilename, width=16)
+
+    input_browse_button  = Button(i_frame, text='Input File', command=askopeninputfilename, width=16)
+    output_browse_button = Button(o_frame, text='Output File', command=askopenoutputfilename, width=16)
+
+    input_browse_button.pack(side='left')
+    input_entry.pack(side='top')
+
+    output_browse_button.pack(side='left')
+    output_entry.pack()
 
     run_button = Button(
         window,
@@ -125,7 +146,7 @@ def gui():
         )
     )
 
-    run_button
+    run_button.pack()
     window.mainloop()
 
 

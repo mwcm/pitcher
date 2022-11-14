@@ -51,7 +51,6 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### Current TODO:
-- re-organize gui elements
 - add options to GUI
     - output_filter_type
     - moog_output_filter_cutoff
