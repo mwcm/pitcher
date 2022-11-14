@@ -51,16 +51,16 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### Current TODO:
-- check why both scipy resample vs librosa resample used (git history? comments?)
-- upload executables for mac + windows
-
-### Future TODO:
-- tests
+- re-organize gui elements
 - add options to GUI
     - output_filter_type
     - moog_output_filter_cutoff
     - custom_time_stretch
-- re-organize gui elements
+- use askopensaveasfilename instead of askopen for outputfile
+- check why both scipy resample vs librosa resample used (git history? comments?)
+- upload executables for mac + windows
+
+### Future TODO:
 - smaller exe size
 - dedicated 33rpm -> 45rpm pre-processing option
 - only use ffmpeg/libav when necessary
