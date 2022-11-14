@@ -16,7 +16,7 @@ def gui():
     window = Tk()
     window.geometry('600x320')
     window.resizable(True, False)
-    window.title('P I T C H E R')
+    window.title('Pitcher')
 
     window.columnconfigure(0, weight=1)
     window.columnconfigure(1, weight=3)
