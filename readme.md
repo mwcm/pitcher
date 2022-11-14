@@ -52,12 +52,12 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### Current TODO:
-- check why both scipy resample vs librosa resample used (git history? comments?)
 - upload executables for mac + windows
 
 ### Future TODO:
-- smaller exe size
+- test scipy vs librosa resample, use one consistently? expose as option?
 - progress bar or some sort of loading indicator
+- smaller exe size
 - dedicated 33rpm -> 45rpm pre-processing stretch option
 - could add moog_output_filter_cutoff slider and/or lp2 cutoff slider to gui
 - only use ffmpeg/libav when necessary
