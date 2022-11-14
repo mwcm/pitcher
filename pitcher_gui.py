@@ -1,28 +1,21 @@
 #!/usr/bin/env python
 
-from tkinter import Button as tk_button
-from tkinter import DoubleVar as tk_double
-from tkinter import END as tk_END
-from tkinter import Entry as tk_entry
-from tkinter import filedialog as tk_filedialog
-from tkinter import Label as tk_label
-from tkinter import Scale as tk_scale
-from tkinter import Tk
+from tkinter import Button, DoubleVar, IntVar, END, Entry, Entry, filedialog, Label, Scale, Tk, Checkbutton
 
 from pitcher import pitch, OUTPUT_FILTER_TYPES
 
 
 def gui():
     window = Tk()
-    window.geometry('600x320')
+    window.geometry('600x400')
     window.resizable(True, False)
     window.title('Pitcher')
 
     window.columnconfigure(0, weight=1)
     window.columnconfigure(1, weight=3)
 
-    current_st_value = tk_double()
-    current_bit_value = tk_double()
+    current_st_value = DoubleVar()
+    current_bit_value = DoubleVar()
 
     current_st_value.set(0)
     current_bit_value.set(12)
@@ -33,7 +26,7 @@ def gui():
     def get_current_bit_value():
         return '{: .2f}'.format(current_bit_value.get())
 
-    st_slider = tk_scale(
+    st_slider = Scale(
         window,
         from_= 12,
         to=-12,
@@ -43,7 +36,7 @@ def gui():
         variable=current_st_value
         )
 
-    bit_slider = tk_scale(
+    bit_slider = Scale(
         window,
         from_= 16,
         to = 2,
@@ -67,12 +60,12 @@ def gui():
         sticky='w'
     )
 
-    st_slider_label = tk_label(
+    st_slider_label = Label(
         window,
         text='Semitones:'
     )
 
-    bit_slider_label = tk_label(
+    bit_slider_label = Label(
         window,
         text='Quantize Bits:'
     )
@@ -91,29 +84,44 @@ def gui():
         sticky='w'
     )
 
-    input_entry = tk_entry(width=40)
+    input_entry = Entry(width=60)
     input_entry.grid(column=1, row=4, sticky='w')
 
-    output_entry = tk_entry(width=40)
+    output_entry = Entry(width=60)
     output_entry.grid(column=1, row=5, sticky='w')
 
     def askopeninputfilename():
-        input_file = tk_filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=window, title='Choose a file')
-        input_entry.delete(0, tk_END)
+        input_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=window, title='Choose a file')
+        input_entry.delete(0, END)
         input_entry.insert(0, input_file)
 
     def askopenoutputfilename():
-        output_file = tk_filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=window, title='Choose a file')
-        output_entry.delete(0, tk_END)
+        output_file = filedialog.askopenfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=window, title='Choose a file')
+        output_entry.delete(0, END)
         output_entry.insert(0, output_file)
 
-    input_browse_button = tk_button(window, text='Input File', command=askopeninputfilename, width=16)
-    input_browse_button.grid(column=0, padx=5, row=4, sticky='w')
+    input_browse_button = Button(window, text='Input File', command=askopeninputfilename, width=16)
+    input_browse_button.grid(column=0, row=4, sticky='w')
 
-    output_browse_button = tk_button(window, text='Output File', command=askopenoutputfilename, width=16)
-    output_browse_button.grid(column=0, padx=5, row=5, sticky='w')
+    output_browse_button = Button(window, text='Output File', command=askopenoutputfilename, width=16)
+    output_browse_button.grid(column=0, row=5, sticky='w')
 
-    run_button = tk_button(
+    input_filter = IntVar(value=1)
+    Checkbutton(window, text="Input Filter", variable=input_filter).grid(column=0, row=6, sticky='w')
+
+    normalize_output = IntVar(value=0)
+    Checkbutton(window, text="Normalize Output", variable=normalize_output).grid(column=1, row=6, sticky='w')
+
+    time_stretch = IntVar(value=1)
+    Checkbutton(window, text="Time Stretch", variable=time_stretch).grid(column=0, row=7, sticky='w')
+
+    output_filter = IntVar(value=1)
+    Checkbutton(window, text="Output Filter", variable=output_filter).grid(column=1, row=7, sticky='w')
+
+    force_mono = IntVar(value=0)
+    Checkbutton(window, text="Force Mono", variable=force_mono).grid(column=0, row=8, sticky='w')
+
+    run_button = Button(
         window,
         text='Pitch', 
         command= lambda: pitch(
@@ -121,20 +129,20 @@ def gui():
             input_file=input_entry.get(),
             output_file=output_entry.get(),
             log_level='INFO',
-            input_filter=True,
-            quantize=True,
-            time_stretch=True,
-            normalize_output=False,
-            output_filter=True,
+            input_filter=True if input_filter else False,
+            quantize=bool(input_filter.get()),
+            time_stretch=bool(time_stretch.get()),
+            normalize_output=bool(normalize_output.get()),
+            output_filter=bool(output_filter.get()),
             quantize_bits=int(float(get_current_bit_value())),
             custom_time_stretch=1.0,
             output_filter_type=OUTPUT_FILTER_TYPES[0],
             moog_output_filter_cutoff=10000,
-            force_mono=False
+            force_mono=bool(force_mono.get())
         )
     )
 
-    run_button.grid(column=0, padx=5, row=6, sticky='w')
+    run_button.grid(column=0, padx=5, row=9, sticky='w')
     window.mainloop()
 
 
