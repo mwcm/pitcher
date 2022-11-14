@@ -42,7 +42,8 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 --normalize-output          - normalize output volume to ,                           flag,   default False
 --quantize-bits             - bit rate of quantized output,                          int,    default 12
 --custom-time-stretch       - custom shift, 1.0 for device default, 0.0 for none,    float,  default 1.0
---output-filter-type        - 'lp1', 'lp2' or 'moog', lp1 fc=7.5kHz, lp2 fc=10kHz    str,    default 'lp1'
+--output-filter-type        - 'lp1', 'lp2' or 'moog'                                 str,    default 'lp1
+                               lp1 cutoff = 7.5kHz, lp2 cutoff = 10kHz, moog=10kHz
 --moog-output-filter-cutoff - set cutoff for moog SSM2044 approximation,             int,    default 10000
 --force-mono                - convert input to mono, ouput will also be mono,        flag,   default False
 ```
@@ -52,10 +53,9 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 ### Current TODO:
 - add options to GUI
-    - output_filter_type
     - moog_output_filter_cutoff
-    - custom_time_stretch
 - use askopensaveasfilename instead of askopen for outputfile
+
 - check why both scipy resample vs librosa resample used (git history? comments?)
 - upload executables for mac + windows
 

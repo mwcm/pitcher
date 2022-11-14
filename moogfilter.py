@@ -27,8 +27,7 @@ from numpy import tanh
 # "Two of these filters employ the SSM-2044 Voltage Controlled Filter (VCF) chip as a 4-pole lowpass with time-varying cutoff frequency."
 # VCF functionality only used for outputs 1 & 2 
 
-# could use below and slides to test against and match sp-1200's use
-# of ssm2044 for outputs 1&2
+# could test against slides and match sp-1200's use of ssm2044 for outputs 1&2
 #  - Exponential time constant = 0.085 s
 #  - Initial Fc = 14150
 #  - Final Fc = 1150
