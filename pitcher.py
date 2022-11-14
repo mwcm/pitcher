@@ -356,7 +356,3 @@ def pitch(
             custom_time_stretch, output_filter_type, moog_output_filter_cutoff
         )
         write_audio(y, output_file, normalize_output)
-
-
-if __name__ == '__main__':
-    pitch()
