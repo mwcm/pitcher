@@ -55,8 +55,8 @@ OUTPUT_SR = 48000
 SP_SR = 26040
 
 OUTPUT_FILTER_TYPES = [
-    'Lowpass fc @ 7.5kHz', 
-    'Lowpass fc @ 10kHz', 
+    'Lowpass - fc @ 7.5kHz', 
+    'Lowpass - fc @ 10kHz', 
     'Lowpass - Moog VCF'
 ]
 
