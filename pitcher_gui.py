@@ -89,7 +89,6 @@ def gui():
         )
     stretch_slider.pack()
 
-
     # other options
 
     input_filter     = IntVar(value=1)
@@ -100,29 +99,25 @@ def gui():
     output_filter_type = StringVar(value=OUTPUT_FILTER_TYPES[0])
 
     o_frame = Frame(top_frame)
-    o_frame.pack(padx=20, pady=60)
-    o1 = Frame(o_frame)
-    o1.pack(side='left')
-    o2 = Frame(o_frame)
-    o2.pack()
+    o_frame.pack(padx=20, pady=10)
 
-    input_filter_button     = Checkbutton(o1, text="Input Filter",     variable=input_filter)
-    normalize_output_button = Checkbutton(o1, text="Normalize Output", variable=normalize_output)
-    time_stretch_button     = Checkbutton(o1, text="Time Stretch",     variable=time_stretch)
-    output_filter_button    = Checkbutton(o1, text="Output Filter",    variable=output_filter)
-    force_mono_button       = Checkbutton(o1, text="Force Mono",       variable=force_mono)
+    input_filter_button     = Checkbutton(o_frame, text="Input Filter",     variable=input_filter)
+    normalize_output_button = Checkbutton(o_frame, text="Normalize Output", variable=normalize_output)
+    time_stretch_button     = Checkbutton(o_frame, text="Time Stretch",     variable=time_stretch)
+    output_filter_button    = Checkbutton(o_frame, text="Output Filter",    variable=output_filter)
+    force_mono_button       = Checkbutton(o_frame, text="Force Mono",       variable=force_mono)
 
-    oft_label = Label(o2, text='Output Filter Type:')
-    output_filter_menu = OptionMenu(o2, output_filter_type, *OUTPUT_FILTER_TYPES)
+    oft_label = Label(o_frame, text='Output Filter Type:')
+    output_filter_menu = OptionMenu(o_frame, output_filter_type, *OUTPUT_FILTER_TYPES)
+
+    oft_label.pack()
+    output_filter_menu.pack()
 
     input_filter_button.pack()
     normalize_output_button.pack()
     time_stretch_button.pack()
     output_filter_button.pack()
     force_mono_button.pack()
-
-    oft_label.pack()
-    output_filter_menu.pack()
 
     # file input/output
 
