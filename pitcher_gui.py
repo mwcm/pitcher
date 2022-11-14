@@ -138,7 +138,6 @@ def gui():
         input_entry.delete(0, END)
         input_entry.insert(0, input_file)
 
-    # TODO: use asksaveasfilename instead
     def askopenoutputfilename():
         output_file = filedialog.asksaveasfilename(filetypes=[("audio files", "*.mp3 *.wav *.flac")], parent=o_frame, title='Choose a file')
         output_entry.delete(0, END)
