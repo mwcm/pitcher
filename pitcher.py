@@ -7,31 +7,11 @@
 import logging
 from sys import platform, path
 
-from scipy.interpolate import interp1d as sp_interp1d
+import numpy as np
 
-from scipy.signal import ellip    as sp_ellip
-from scipy.signal import sosfilt  as sp_sosfilt
-from scipy.signal import tf2sos   as sp_tf2sos
-from scipy.signal import firwin2  as sp_firwin2
-from scipy.signal import resample as sp_resample
-from scipy.signal import decimate as sp_decimate
-from scipy.signal import butter   as sp_butter
-
-from scipy.spatial import cKDTree as sp_cKDTree
-
-from numpy import int16   as np_int16
-from numpy import int32   as np_int32
-from numpy import float32 as np_float32
-
-from numpy import arange         as np_arange
-from numpy import array          as np_array
-from numpy import asarray        as np_asarray
-from numpy import asfortranarray as np_asfortranarray
-from numpy import hstack         as np_hstack
-from numpy import linspace       as np_linspace
-from numpy import power          as np_power
-from numpy import repeat         as np_repeat
-from numpy import round          as np_round
+from scipy.interpolate import interp1d
+from scipy.signal import ( ellip, sosfilt, tf2sos, firwin2, decimate, resample, butter )
+from scipy.spatial import cKDTree
 
 from pydub import AudioSegment
 
@@ -98,8 +78,8 @@ def calc_quantize_function(quantize_bits):
     u = 1  # max amplitude to quantize
     quantization_levels = 2 ** quantize_bits
     delta_s = 2 * u / quantization_levels  # level distance
-    s_midrise = -u + delta_s / 2 + np_arange(quantization_levels) * delta_s
-    s_midtread = -u + np_arange(quantization_levels) * delta_s
+    s_midrise = -u + delta_s / 2 + np.arange(quantization_levels) * delta_s
+    s_midtread = -u + np.arange(quantization_levels) * delta_s
     log.info('done calculating quantize fn')
     return s_midrise, s_midtread
 
@@ -116,17 +96,17 @@ def adjust_pitch(x, st):
     else: # -8 > st
         # output tuning will loses precision/accuracy the further
         # we extrapolate from the device tuning ratios
-        f = sp_interp1d(
+        f = interp1d(
                 list(NEGATIVE_TUNING_RATIOS.keys()),
                 list(NEGATIVE_TUNING_RATIOS.values()),
                 fill_value='extrapolate'
         )
         t = f(st)
 
-    n = int(np_round(len(x) * t))
-    r = np_linspace(0, len(x) - 1, n).round().astype(np_int32)
+    n = int(np.round(len(x) * t))
+    r = np.linspace(0, len(x) - 1, n).round().astype(np.int32)
     pitched = [x[r[e]] for e in range(n-1)]  # could yield instead
-    pitched = np_array(pitched)
+    pitched = np.array(pitched)
     log.info('done pitching audio')
 
     return pitched
@@ -136,8 +116,8 @@ def filter_input(x):
     log.info('applying anti aliasing filter')
     # NOTE: Might be able to improve accuracy in the 15 -> 20kHz range with firwin?
     #       Close already, could perfect it at some point, probably not super important now.
-    f = sp_ellip(4, 1, 72, 0.666, analog=False, output='sos')
-    y = sp_sosfilt(f, x)
+    f = ellip(4, 1, 72, 0.666, analog=False, output='sos')
+    y = sosfilt(f, x)
     log.info('done applying anti aliasing filter')
     return y
 
@@ -146,12 +126,12 @@ def lp1(x, sample_rate):
     log.info(f'applying output eq filter {OUTPUT_FILTER_TYPES[0]}')
     # follows filter curve shown on slide 3
     # cutoff @ 7.5kHz
-    freq = np_array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
-    att = np_array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
-    gain = np_power(10, att/20)
-    f = sp_firwin2(45, freq, gain, fs=sample_rate, antisymmetric=False)
-    sos = sp_tf2sos(f, [1.0])
-    y = sp_sosfilt(sos, x)
+    freq = np.array([0, 6510, 8000, 10000, 11111, 13020, 15000, 17500, 20000, 24000])
+    att = np.array([0, 0, -5, -10, -15, -23, -28, -35, -41, -40])
+    gain = np.power(10, att/20)
+    f = firwin2(45, freq, gain, fs=sample_rate, antisymmetric=False)
+    sos = tf2sos(f, [1.0])
+    y = sosfilt(sos, x)
     log.info('done applying output eq filter')
     return y
 
@@ -160,8 +140,8 @@ def lp2(x, sample_rate):
     log.info(f'applying output eq filter {OUTPUT_FILTER_TYPES[1]}')
     fc = 10000
     w = fc / (sample_rate / 2)
-    sos = sp_butter(7, w, output='sos')
-    y = sp_sosfilt(sos, x)
+    sos = butter(7, w, output='sos')
+    y = sosfilt(sos, x)
     log.info('done applying output eq filter')
     return y
 
@@ -171,10 +151,10 @@ def scipy_resample(y, input_sr, target_sr, factor):
     log.info(f'resampling audio to sample rate of {target_sr * factor}')
     seconds = len(y)/input_sr
     target_samples = int(seconds * (target_sr * factor)) + 1
-    resampled = sp_resample(y, target_samples)
+    resampled = resample(y, target_samples)
     log.info('done resample 1/2')
     log.info(f'resampling audio to sample rate of {target_sr}')
-    decimated = sp_decimate(resampled, factor)
+    decimated = decimate(resampled, factor)
     log.info('done resample 2/2')
     log.info('done resampling audio')
     return decimated
@@ -184,14 +164,14 @@ def zero_order_hold(y, zoh_multiplier):
     # NOTE: could also try a freq aliased sinc filter
     log.info(f'applying zero order hold of {zoh_multiplier}')
     # intentionally oversample by repeating each sample 4 times
-    zoh_applied = np_repeat(y, zoh_multiplier).astype(np_float32)
+    zoh_applied = np.repeat(y, zoh_multiplier).astype(np.float32)
     log.info('done applying zero order hold')
     return zoh_applied
 
 
 def nearest_values(x, y):
-    x, y = map(np_asarray, (x, y))
-    tree = sp_cKDTree(y[:, None])
+    x, y = map(np.asarray, (x, y))
+    tree = cKDTree(y[:, None])
     ordered_neighbors = tree.query(x[:, None], 1)[1]
     return ordered_neighbors
 
@@ -212,7 +192,7 @@ def write_mp3(f, x, sr):
     """numpy array to MP3"""
     channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
     # zoh converts to float32, when librosa normalized not selected y still within [-1,1] by here
-    y = np_int16(x * 2 ** 15)
+    y = np.int16(x * 2 ** 15)
     song = AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
     song.export(f, format="mp3", bitrate="320k")
     return
@@ -274,7 +254,7 @@ def process_array(
     # NOTE: why use scipy above and librosa here?
     #       check git history to see if there was a note about this
     output = librosa_resample(
-                np_asfortranarray(post_zero_order_hold),
+                np.asfortranarray(post_zero_order_hold),
                 orig_sr=SP_SR * ZOH_MULTIPLIER,
                 target_sr=OUTPUT_SR
             )
@@ -368,7 +348,7 @@ def pitch(
             y2, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
             custom_time_stretch, output_filter_type, moog_output_filter_cutoff
         )
-        y = np_hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
+        y = np.hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
         write_audio(y, output_file, normalize_output)
     else:  # mono
         y = process_array(
