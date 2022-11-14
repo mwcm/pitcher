@@ -55,9 +55,9 @@ OUTPUT_SR = 48000
 SP_SR = 26040
 
 OUTPUT_FILTER_TYPES = [
-    'Lowpass - fc @ 7.5kHz', 
-    'Lowpass - fc @ 10kHz', 
-    'Lowpass - Moog VCF'
+    'lp1', 
+    'lp2', 
+    'moog'
 ]
 
 POSITIVE_TUNING_RATIO = 1.02930223664

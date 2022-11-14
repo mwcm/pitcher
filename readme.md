@@ -42,7 +42,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 --normalize-output          - normalize output volume to ,                           flag,   default False
 --quantize-bits             - bit rate of quantized output,                          int,    default 12
 --custom-time-stretch       - custom shift, 1.0 for device default, 0.0 for none,    float,  default 1.0
---output-filter-type        - LP or MoogLP,                                          str,    default 'LP'
+--output-filter-type        - 'lp1', 'lp2' or 'moog', lp1 fc=7.5kHz, lp2 fc=10kHz    str,    default 'lp1'
 --moog-output-filter-cutoff - set cutoff for moog SSM2044 approximation,             int,    default 10000
 --force-mono                - convert input to mono, ouput will also be mono,        flag,   default False
 ```
