@@ -3,7 +3,6 @@
 import click
 from pitcher import pitch, OUTPUT_FILTER_TYPES
 
-#@click.option('--force-mono',                 is_flag=True, default=False)
 
 @click.command()
 @click.option('--st',                         type=int,     default=0, help='number of semitones to shift')
