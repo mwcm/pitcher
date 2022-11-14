@@ -55,7 +55,7 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - upload executables for mac + windows
 
 ### Future TODO:
-- test scipy vs librosa resample, use one consistently? expose as option?
+- test scipy vs librosa resample, use one consistently or expose as option
 - progress bar or some sort of loading indicator
 - smaller exe size
 - dedicated 33rpm -> 45rpm pre-processing stretch option
