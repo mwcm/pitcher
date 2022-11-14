@@ -51,7 +51,11 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 
 
 ### Current TODO:
-- add all options to GUI
+- add options to GUI
+    - output_filter_type
+    - moog_output_filter_cutoff
+    - custom_time_stretch
+- re-organize gui elements
 - scipy resample vs librosa resample and usages (git history? comments?)
 
 ### Future TODO:
