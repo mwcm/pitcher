@@ -5,7 +5,7 @@
 
 - Free & OS emulation of the SP-12 & SP-1200 signal chain (now with GUI)
 - Pitch shift / bitcrush / resample audio files
-- Written and tested in Python v3.10.7
+- Written and tested in Python v3.10.7 on Windows & MacOS (pre-m1)
 - Based on [Physical and Behavioral Circuit Modeling of the SP-12
 Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.pdf) & [Slides](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 - Audio examples [here](https://soundcloud.com/user-320158268/sets/pitcher-examples) and [here](https://tinyurl.com/yckcmhb2)
@@ -53,6 +53,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.0) also has
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
 
 ### TODO:
+- add quantize flag to gui, remake executables, release 0.5.1
 - test scipy vs librosa resample, use one consistently or expose as option
 - progress bar or some sort of loading indicator
 - smaller exe size
