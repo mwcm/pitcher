@@ -213,7 +213,6 @@ def process_array(
 
     log.info('done loading')
 
-    midrise, midtread = calc_quantize_function(quantize_bits)
 
     if input_filter:
         y = filter_input(y)
@@ -225,6 +224,7 @@ def process_array(
     if quantize:
         # TODO: expose midrise option?
         # simulate analog -> digital conversion
+        midrise, midtread = calc_quantize_function(quantize_bits)
         resampled = q(resampled, midtread, quantize_bits)
     else:
         log.info('skipping quantize')

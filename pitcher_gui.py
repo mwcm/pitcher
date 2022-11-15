@@ -92,6 +92,7 @@ def gui():
     # other options
 
     input_filter     = IntVar(value=1)
+    quantize         = IntVar(value=1)
     output_filter    = IntVar(value=1)
     time_stretch     = IntVar(value=1)
     normalize_output = IntVar(value=0)
@@ -102,6 +103,7 @@ def gui():
     o_frame.pack(padx=20, pady=10)
 
     input_filter_button     = Checkbutton(o_frame, text="Input Filter",     variable=input_filter)
+    quantize_button         = Checkbutton(o_frame, text="Quantize",         variable=quantize)
     normalize_output_button = Checkbutton(o_frame, text="Normalize Output", variable=normalize_output)
     time_stretch_button     = Checkbutton(o_frame, text="Time Stretch",     variable=time_stretch)
     output_filter_button    = Checkbutton(o_frame, text="Output Filter",    variable=output_filter)
@@ -114,6 +116,7 @@ def gui():
     output_filter_menu.pack()
 
     input_filter_button.pack()
+    quantize_button.pack()
     normalize_output_button.pack()
     time_stretch_button.pack()
     output_filter_button.pack()
@@ -160,8 +163,8 @@ def gui():
             input_file=input_entry.get(),
             output_file=output_entry.get(),
             log_level='INFO',
-            input_filter=True if input_filter else False,
-            quantize=bool(input_filter.get()),
+            input_filter=bool(input_filter.get()),
+            quantize=bool(quantize.get()),
             time_stretch=bool(time_stretch.get()),
             normalize_output=bool(normalize_output.get()),
             output_filter=bool(output_filter.get()),
