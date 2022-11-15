@@ -53,6 +53,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.0) also has
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
 
 ### TODO:
+- add quantize flag to gui, remake executables, release 0.5.1
 - test scipy vs librosa resample, use one consistently or expose as option
 - progress bar or some sort of loading indicator
 - smaller exe size
