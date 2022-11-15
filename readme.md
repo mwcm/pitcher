@@ -1,5 +1,7 @@
 # Pitcher.py
-<img src="https://user-images.githubusercontent.com/2433319/130370952-3b029cf5-d9b7-4877-be0b-8593c017b5ea.png" width="600" height="320">
+
+<img width="712" alt="Screen Shot 2022-11-14 at 8 09 32 PM" src="https://user-images.githubusercontent.com/2433319/201812501-af784d53-5a6d-4c94-af5d-1ffb2fc8cb11.png">
+
 
 - Free & OS emulation of the SP-12 & SP-1200 signal chain (now with GUI)
 - Pitch shift / bitcrush / resample audio files
@@ -26,7 +28,7 @@ You can now also run a simple gui version using the command:
 ```python pitcher_gui.py```
 
 
-The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has binary files for the GUI (.exe and .app).
+The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.0) also has binary files for the GUI (.exe and .app).
 
 
 ### Options:
@@ -50,11 +52,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.0.1) also has
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
 
-
-### Current TODO:
-- upload executables for mac + windows
-
-### Future TODO:
+### TODO:
 - test scipy vs librosa resample, use one consistently or expose as option
 - progress bar or some sort of loading indicator
 - smaller exe size
