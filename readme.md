@@ -58,6 +58,6 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - smaller exe size
 - dedicated 33rpm -> 45rpm pre-processing stretch option
 - could add moog_output_filter_cutoff slider and/or lp2 cutoff slider to gui
-- Anrdoid apk
+- Android apk
 - only use ffmpeg/libav when necessary
 - perfect high end input anti aliasing filter fit (close enough, not a priority for now)
