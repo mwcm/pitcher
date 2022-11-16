@@ -28,7 +28,7 @@ You can now also run a simple gui version using the command:
 ```python pitcher_gui.py```
 
 
-The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.0) also has binary files for the GUI (.exe and .app).
+The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has binary files for the GUI (.exe and .app).
 
 
 ### Options:
