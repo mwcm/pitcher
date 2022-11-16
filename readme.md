@@ -33,6 +33,8 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
 
 ### Options:
 ```
+The flags (with the exception of force-mono) are laid out in the order which the corresponding operations occured on the original device.
+
 --st                        - number of semitones to shift pitch by,                 int,    required
 --input-file                - path to input file,                                    string, required
 --output-file               - path to output file,                                   string, required
