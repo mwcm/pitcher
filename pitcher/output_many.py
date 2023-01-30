@@ -4,11 +4,11 @@ import click
 from librosa import load
 from pathlib import Path
 
-#  back up
-OUTPUT_MANY_ST_RANGE = [x for x in range(1, 17)]
+# up
+# OUTPUT_MANY_ST_RANGE = [x for x in range(1, 17)]
 
-# down pitch
-# OUTPUT_MANY_ST_RANGE = [x for x in range(-6, 7) if x != 0]
+# down
+OUTPUT_MANY_ST_RANGE = [x for x in range(-8, 0)]
 
 # NOTE: 
 # - could move this into core
