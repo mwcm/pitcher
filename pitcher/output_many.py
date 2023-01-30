@@ -8,7 +8,7 @@ from pathlib import Path
 # OUTPUT_MANY_ST_RANGE = [x for x in range(1, 17)]
 
 # down
-OUTPUT_MANY_ST_RANGE = [x for x in range(-8, 0)]
+OUTPUT_MANY_ST_RANGE = [x for x in range(-12, 0)]
 
 # NOTE: 
 # - could move this into core
