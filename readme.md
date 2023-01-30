@@ -5,7 +5,7 @@
 
 - Free & OS emulation of the SP-12 & SP-1200 signal chain (now with GUI)
 - Pitch shift / bitcrush / resample audio files
-- Written and tested in Python v3.10.7 on Windows & MacOS (pre-m1)
+- Written and tested in Python v3.10.7 on Windows & MacOS Mojave 10.14.6
 - Based on [Physical and Behavioral Circuit Modeling of the SP-12
 Sampler, DT Yeh, 2007](https://ccrma.stanford.edu/~dtyeh/papers/yeh07_icmc_sp12.pdf) & [Slides](https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf)
 - Audio examples [here](https://soundcloud.com/user-320158268/sets/pitcher-examples) and [here](https://tinyurl.com/yckcmhb2)
@@ -28,10 +28,11 @@ You can now also run a simple gui version using the command:
 ```python pitcher_gui.py```
 
 
-The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.0) also has binary files for the GUI (.exe and .app).
+The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has binary files for the GUI (.exe and .app).
 
 
 ### Options:
+
 ```
 --st                        - number of semitones to shift pitch by,                 int,    required
 --input-file                - path to input file,                                    string, required
@@ -58,5 +59,6 @@ If you find this project useful, please consider donating to the [NAACP Legal De
 - smaller exe size
 - dedicated 33rpm -> 45rpm pre-processing stretch option
 - could add moog_output_filter_cutoff slider and/or lp2 cutoff slider to gui
+- Android apk
 - only use ffmpeg/libav when necessary
 - perfect high end input anti aliasing filter fit (close enough, not a priority for now)

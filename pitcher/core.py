@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Pitcher v 0.5
+# Pitcher v 0.5.2
 # Copyright (C) 2020 Morgan Mitchell
 # Based on: Physical and Behavioral Circuit Modeling of the SP-12, DT Yeh, 2007
 # https://ccrma.stanford.edu/~dtyeh/sp12/yeh2007icmcsp12slides.pdf
