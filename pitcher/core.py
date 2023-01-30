@@ -277,33 +277,33 @@ def process_array(
     return output
 
 
-def write_audio(output, output_file, normalize_output):
+def write_audio(output, output_file_path, normalize_output):
 
-    log.info(f'writing {output_file}, at sample rate {OUTPUT_SR} with normalize_output set to {normalize_output}')
+    log.info(f'writing {output_file_path}, at sample rate {OUTPUT_SR} with normalize_output set to {normalize_output}')
 
     if normalize_output:
         output = librosa_normalize(output)
 
-    if '.mp3' in output_file:
-        write_mp3(output_file, output, OUTPUT_SR)
-    elif '.wav' in output_file:
-        sf_write(output_file, output, OUTPUT_SR, subtype='PCM_16')
-    elif '.ogg' in output_file:
-        sf_write(output_file, output, OUTPUT_SR, format='ogg', subtype='vorbis')
-    elif '.flac' in output_file:
-        sf_write(output_file, output, OUTPUT_SR, format='flac', subtype='PCM_16')
+    if '.mp3' in output_file_path:
+        write_mp3(output_file_path, output, OUTPUT_SR)
+    elif '.wav' in output_file_path:
+        sf_write(output_file_path, output, OUTPUT_SR, subtype='PCM_16')
+    elif '.ogg' in output_file_path:
+        sf_write(output_file_path, output, OUTPUT_SR, format='ogg', subtype='vorbis')
+    elif '.flac' in output_file_path:
+        sf_write(output_file_path, output, OUTPUT_SR, format='flac', subtype='PCM_16')
     else:
-        log.error(f'Output file type unsupported or unrecognized, saving to {output_file}.wav')
-        sf_write(output_file + '.wav', output, OUTPUT_SR, subtype='PCM_16')
+        log.error(f'Output file type unsupported or unrecognized, saving to {output_file_path}.wav')
+        sf_write(output_file_path + '.wav', output, OUTPUT_SR, subtype='PCM_16')
 
-    log.info(f'done writing output_file at: {output_file}')
+    log.info(f'done writing output_file_path at: {output_file_path}')
     return
 
 
 def pitch(
         st: int,
-        input_file: str,
-        output_file: str,
+        input_file_path: str,
+        output_file_path: str,
         log_level: str,
         input_filter=True,
         quantize=True,
@@ -314,7 +314,8 @@ def pitch(
         custom_time_stretch=1.0,
         output_filter_type=OUTPUT_FILTER_TYPES[0],
         moog_output_filter_cutoff=10000,
-        force_mono=False
+        force_mono=False,
+        input_data=None  # allows passing an array to avoid re-processing input for output_many.py
     ):
 
     valid_levels = list(log_levels.keys())
@@ -330,8 +331,14 @@ def pitch(
         log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
         log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
 
-    log.info(f'loading: "{input_file}" at oversampled rate: {INPUT_SR}')
-    y, s = librosa_load(input_file, sr=INPUT_SR, mono=force_mono)
+    y = None
+    if input_data is not None:
+        # if provided, use already processed input file data
+        y = input_data
+    else:
+        # otherwise process the file at intput_file_path
+        log.info(f'loading: "{input_file_path}" at oversampled rate: {INPUT_SR}')
+        y, s = librosa_load(input_file_path, sr=INPUT_SR, mono=force_mono)
 
     if y.ndim == 2:  # stereo
         y1 = y[0]
@@ -349,10 +356,10 @@ def pitch(
             custom_time_stretch, output_filter_type, moog_output_filter_cutoff
         )
         y = np.hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
-        write_audio(y, output_file, normalize_output)
+        write_audio(y, output_file_path, normalize_output)
     else:  # mono
         y = process_array(
             y, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
             custom_time_stretch, output_filter_type, moog_output_filter_cutoff
         )
-        write_audio(y, output_file, normalize_output)
+        write_audio(y, output_file_path, normalize_output)

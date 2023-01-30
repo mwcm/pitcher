@@ -5,7 +5,7 @@ from tkinter import (
     Checkbutton, Frame, StringVar, OptionMenu
     )
 
-from pitcher import pitch, OUTPUT_FILTER_TYPES
+from pitcher.core import pitch, OUTPUT_FILTER_TYPES
 
 
 def gui():
@@ -160,8 +160,8 @@ def gui():
         text='Pitch', 
         command= lambda: pitch(
             st=get_current_st_value(),
-            input_file=input_entry.get(),
-            output_file=output_entry.get(),
+            input_file_path=input_entry.get(),
+            output_file_path=output_entry.get(),
             log_level='INFO',
             input_filter=bool(input_filter.get()),
             quantize=bool(quantize.get()),
@@ -170,7 +170,7 @@ def gui():
             output_filter=bool(output_filter.get()),
             quantize_bits=get_current_bit_value(),
             custom_time_stretch=get_current_time_stretch_value(),
-            output_filter_type=bool(output_filter_type.get()),
+            output_filter_type=output_filter_type.get(),
             moog_output_filter_cutoff=10000,
             force_mono=bool(force_mono.get())
         )

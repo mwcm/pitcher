@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 import click
-from pitcher import pitch, OUTPUT_FILTER_TYPES
+from pitcher.core import pitch, OUTPUT_FILTER_TYPES
 
 
 @click.command()
@@ -18,7 +18,7 @@ from pitcher import pitch, OUTPUT_FILTER_TYPES
 @click.option('--custom-time-stretch',        type=float,   default=1.0)
 @click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default=OUTPUT_FILTER_TYPES[0])
 @click.option('--moog-output-filter-cutoff',  type=int,     default=10000)
-@click.option('--force_mono',                 is_flag=True, default=False)
+@click.option('--force-mono',                 is_flag=True, default=False)
 def cli_wrapper(
         st,
         input_file,
@@ -35,10 +35,11 @@ def cli_wrapper(
         moog_output_filter_cutoff,
         force_mono
     ):
+
     pitch(
         st=st,
-        input_file=input_file,
-        output_file=output_file,
+        input_file_path=input_file,
+        output_file_path=output_file,
         log_level=log_level,
         input_filter=input_filter,
         quantize=quantize,
