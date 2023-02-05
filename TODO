@@ -1,0 +1,9 @@
+TODO:
+- test scipy vs librosa resample, use one consistently or expose as option
+- progress bar or some sort of loading indicator
+- smaller exe size
+- dedicated 33rpm -> 45rpm pre-processing stretch option
+- could add moog_output_filter_cutoff slider and/or lp2 cutoff slider to gui
+- Android apk
+- only use ffmpeg/libav when necessary
+- perfect high end input anti aliasing filter fit (close enough, not a priority for now)
