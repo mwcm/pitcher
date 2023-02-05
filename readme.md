@@ -52,13 +52,3 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
 ```
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://org2.salsalabs.com/o/6857/p/salsa/donation/common/public/?donate_page_KEY=15780&_ga=2.209233111.496632409.1590767838-1184367471.1590767838) or [BLM - TO](https://blacklivesmatter.ca/donate/)
-
-### TODO:
-- test scipy vs librosa resample, use one consistently or expose as option
-- progress bar or some sort of loading indicator
-- smaller exe size
-- dedicated 33rpm -> 45rpm pre-processing stretch option
-- could add moog_output_filter_cutoff slider and/or lp2 cutoff slider to gui
-- Android apk
-- only use ffmpeg/libav when necessary
-- perfect high end input anti aliasing filter fit (close enough, not a priority for now)
