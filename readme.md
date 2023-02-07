@@ -50,3 +50,5 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
 --moog-output-filter-cutoff - set cutoff for moog SSM2044 approximation,             int,    default 10000
 --force-mono                - convert input to mono, ouput will also be mono,        flag,   default False
 ```
+
+If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://engage.naacpldf.org/dBCvDTd9IEiXX_jPkmkT_w2) or [BLM CA](https://www.blacklivesmatter.ca/)
