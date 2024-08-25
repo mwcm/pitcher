@@ -4,22 +4,25 @@ import click
 from librosa import load
 from pathlib import Path
 
-# up
-# OUTPUT_MANY_ST_RANGE = [x for x in range(1, 17)]
-
-# down
-OUTPUT_MANY_ST_RANGE = [x for x in range(-12, 0)]
-
 # NOTE: 
+# - make up and down cli options
 # - could move this into core
 # - would need to change core.py's st to an array
 # - would also need to accomodate output_path - core expects a file path, not dir
 
-def output_many(input_file, output_dir):
+def output_many(input_file, output_dir, pitch_up):
     in_file_name = Path(input_file).stem
     in_file_type = Path(input_file).suffix
     
     output_path = Path(output_dir)
+
+    # pitch down 12 times, one per st drop
+    OUTPUT_MANY_ST_RANGE = [x for x in range(-12, 0)]
+
+    if pitch_up:
+        # alternatively pitch up
+        OUTPUT_MANY_ST_RANGE = [x for x in range(1, 12)]        
+
     
     if not output_path.exists():
         output_path.mkdir()
@@ -39,8 +42,9 @@ def output_many(input_file, output_dir):
 @click.command()
 @click.option('--input-file', type=str, required=True)
 @click.option('--output-dir', type=str, required=True)
-def wrapper(input_file, output_dir):
-    output_many(input_file, output_dir)
+@click.option('--pitch-up', is_flag=True, default=False)
+def wrapper(input_file, output_dir, pitch_up):
+    output_many(input_file, output_dir, pitch_up)
     return
 
 
