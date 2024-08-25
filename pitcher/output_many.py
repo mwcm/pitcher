@@ -4,8 +4,6 @@ import click
 from librosa import load
 from pathlib import Path
 
-# NOTE: 
-# - make up and down cli options
 # - could move this into core
 # - would need to change core.py's st to an array
 # - would also need to accomodate output_path - core expects a file path, not dir
