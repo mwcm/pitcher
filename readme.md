@@ -35,21 +35,40 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
 
 ```
 --st                        - number of semitones to shift pitch by,                 int,    required
---input-file                - path to input file,                                    string, required
---output-file               - path to output file,                                   string, required
---log-level                 - sets logging threshold,                                string, default 'INFO'
---input-filter              - input anti aliasing low pass filter,                   flag,   default True
---quantize                  - simulate ADC quantize,                                 flag,   default True
---time-stretch              - enable or disable time_shift entirely,                 flag,   default True
---output-filter             - skip all output filtering (default and moog),          flag,   default True
---normalize-output          - normalize output volume to ,                           flag,   default False
---quantize-bits             - bit rate of quantized output,                          int,    default 12
---custom-time-stretch       - custom shift, 1.0 for device default, 0.0 for none,    float,  default 1.0
---output-filter-type        - 'lp1', 'lp2' or 'moog'                                 str,    default 'lp1'
-                               lp1 cutoff = 7.5kHz, lp2 cutoff = 10kHz, moog=10kHz
---moog-output-filter-cutoff - set cutoff for moog SSM2044 approximation,             int,    default 10000
---force-mono                - convert input to mono, ouput will also be mono,        flag,   default False
+--input-file                - path to input audio file (WAV, MP3, OGG, FLAC),       string, required
+--output-file               - path to output audio file,                             string, required
+--log-level                 - logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL), string, default 'INFO'
+--input-filter              - apply input anti-aliasing filter,                      flag,   default True
+--no-input-filter           - skip input anti-aliasing filter
+--quantize                  - apply ADC quantization simulation,                     flag,   default True
+--no-quantize               - skip ADC quantization simulation
+--time-stretch              - enable time stretching,                                flag,   default True
+--no-time-stretch           - disable time stretching
+--output-filter             - apply output EQ filtering,                             flag,   default True
+--no-output-filter          - skip output EQ filtering
+--normalize-output          - normalize output audio,                                flag,   default False
+--quantize-bits             - bit depth for quantization simulation,                 int,    default 12
+--custom-time-stretch       - custom time stretch factor (1.0=device default, 0.0=none), float, default 1.0
+--output-filter-type        - output filter type: lp1 (7.5kHz cutoff), lp2 (10kHz cutoff), moog (SSM2044), str, default 'lp1'
+--moog-output-filter-cutoff - cutoff frequency for moog filter in Hz (20-20000),     int,    default 10000
+--force-mono                - convert input to mono (output will also be mono),      flag,   default False
 --use-sp12-rate             - use SP-12 sample rate (27500 Hz) instead of SP-1200 (26040 Hz), flag, default False
+```
+
+### Usage Examples:
+
+```bash
+# Basic pitch shifting
+python pitcher_cli.py --input-file input.wav --output-file output.wav --st -4
+
+# Disable specific processing steps
+python pitcher_cli.py --input-file input.wav --output-file output.wav --st 2 --no-quantize --no-output-filter
+
+# Use moog filter with custom cutoff
+python pitcher_cli.py --input-file input.wav --output-file output.wav --st 0 --output-filter-type moog --moog-output-filter-cutoff 5000
+
+# Minimal processing (bypass most effects)
+python pitcher_cli.py --input-file input.wav --output-file output.wav --st -1 --no-input-filter --no-time-stretch --no-output-filter
 ```
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://engage.naacpldf.org/dBCvDTd9IEiXX_jPkmkT_w2) or [BLM CA](https://www.blacklivesmatter.ca/)

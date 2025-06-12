@@ -6,7 +6,6 @@ from pitcher.core import pitch, OUTPUT_FILTER_TYPES
 # NOTE: moog_output_filter_cutoff default could be adjusted to more closely match the low cutoff of the original
 #       if that would be more useful
 @click.command()
-<<<<<<< HEAD
 @click.option('--st',                         type=int,     default=0, help='number of semitones to shift pitch by')
 @click.option('--input-file',                 type=str,     required=True, help='path to input audio file (WAV, MP3, OGG, FLAC)')
 @click.option('--output-file',                type=str,     required=True, help='path to output audio file (format determined by extension)')
@@ -21,22 +20,6 @@ from pitcher.core import pitch, OUTPUT_FILTER_TYPES
 @click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default=OUTPUT_FILTER_TYPES[0], help='output filter type: lp1 (7.5kHz cutoff), lp2 (10kHz cutoff), moog (SSM2044)')
 @click.option('--moog-output-filter-cutoff',  type=int,     default=10000, help='cutoff frequency for moog (ssm2044) filter in Hz (20-20000, default 10000)')
 @click.option('--force-mono',                 is_flag=True, default=False, help='convert input to mono (output will also be mono)')
-=======
-@click.option('--st',                         type=int,     default=0, help='number of semitones to shift')
-@click.option('--input-file',                 type=str,     required=True)
-@click.option('--output-file',                type=str,     required=True)
-@click.option('--log-level',                  type=str,     default='INFO')
-@click.option('--input-filter',               is_flag=True, default=True)
-@click.option('--quantize',                   is_flag=True, default=True)
-@click.option('--time-stretch',               is_flag=True, default=True)
-@click.option('--output-filter/--no-output-filter', default=True)
-@click.option('--normalize-output',           is_flag=True, default=False)
-@click.option('--quantize-bits',              type=int,     default=12, help='bit rate of quantized output')
-@click.option('--custom-time-stretch',        type=float,   default=1.0)
-@click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default=OUTPUT_FILTER_TYPES[0])
-@click.option('--moog-output-filter-cutoff',  type=int,     default=10000)
-@click.option('--force-mono',                 is_flag=True, default=False)
->>>>>>> 7fc534618a5e56a3e6d4ce7bf58bd62a02608517
 @click.option('--use-sp12-rate',              is_flag=True, default=False, help='use SP-12 sample rate (27500 Hz) instead of SP-1200 (26040 Hz)')
 def cli_wrapper(
         st,
