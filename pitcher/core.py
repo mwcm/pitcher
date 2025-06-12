@@ -269,7 +269,7 @@ def process_array(
             # lp eq filter cutoff @ 10kHz, SP outputs 5 & 6
             output = lp2(output, OUTPUT_SR)
         else:
-            # moog vcf approximation, SP outputs 1 & 2 originally used for kicks
+            # moog vcf approximation, SP outputs 1 & 2 (originally used often for kicks/toms/snares)
             mf = MoogFilter(sample_rate=OUTPUT_SR, cutoff=moog_output_filter_cutoff)
             output = mf.process(output)
     else:

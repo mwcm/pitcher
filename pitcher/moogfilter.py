@@ -33,7 +33,7 @@ from numpy import tanh
 #  - Final Fc = 1150
 
 # for now just exposing cutoff through pitcher options
-# since mostly using for general audio not just kicks
+# since using for general audio not just drums
 
 
 # Thermal voltage (26 miliwatts at room temp)
@@ -44,7 +44,7 @@ class LadderFilterBase:
 	def __init__(self, sample_rate, cutoff=0, resonance=0):
 		self.sample_rate = sample_rate
 		self.cutoff = cutoff
-		# should likely put limits on this (ie 4>res>0)
+		# note: should likely put limits on this (ie 4>res>0)
 		self.resonance = resonance
 		return 
 
