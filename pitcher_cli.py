@@ -19,6 +19,7 @@ from pitcher.core import pitch, OUTPUT_FILTER_TYPES
 @click.option('--output-filter-type',         type=click.Choice(OUTPUT_FILTER_TYPES), default=OUTPUT_FILTER_TYPES[0])
 @click.option('--moog-output-filter-cutoff',  type=int,     default=10000)
 @click.option('--force-mono',                 is_flag=True, default=False)
+@click.option('--use-sp12-rate',              is_flag=True, default=False, help='use SP-12 sample rate (27500 Hz) instead of SP-1200 (26040 Hz)')
 def cli_wrapper(
         st,
         input_file,
@@ -28,12 +29,13 @@ def cli_wrapper(
         quantize,
         time_stretch,
         output_filter,
-        normalize_output, 
+        normalize_output,
         quantize_bits,
         custom_time_stretch,
         output_filter_type,
         moog_output_filter_cutoff,
-        force_mono
+        force_mono,
+        use_sp12_rate
     ):
 
     pitch(
@@ -50,7 +52,8 @@ def cli_wrapper(
         custom_time_stretch=custom_time_stretch,
         output_filter_type=output_filter_type,
         moog_output_filter_cutoff=moog_output_filter_cutoff,
-        force_mono=force_mono
+        force_mono=force_mono,
+        use_sp12_rate=use_sp12_rate
     )
     return
 

@@ -1,4 +1,4 @@
-from core import pitch, INPUT_SR
+from pitcher.core import pitch, INPUT_SR
 
 import click
 from librosa import load

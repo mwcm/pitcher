@@ -23,7 +23,7 @@ from librosa.util import normalize       as librosa_normalize
 from librosa.effects import time_stretch as librosa_time_stretch
 # TODO: could also try pyrubberband.pyrb.time_stretch
 
-from moogfilter import MoogFilter
+from .moogfilter import MoogFilter
 
 ZOH_MULTIPLIER = 4
 RESAMPLE_MULTIPLIER = 2
@@ -32,7 +32,8 @@ INPUT_SR = 96000
 OUTPUT_SR = 48000
 
 # NOTE: sp-1200 rate 26040, sp-12 rate 27500
-SP_SR = 26040
+SP1200_SR = 26040
+SP12_SR = 27500
 
 OUTPUT_FILTER_TYPES = [
     'lp1', 
@@ -202,13 +203,14 @@ def process_array(
         y,
         st,
         input_filter,
-        quantize, 
+        quantize,
         time_stretch,
         output_filter,
         quantize_bits,
         custom_time_stretch,
         output_filter_type,
-        moog_output_filter_cutoff
+        moog_output_filter_cutoff,
+        sp_sample_rate=SP1200_SR
     ):
 
     log.info('done loading')
@@ -219,7 +221,7 @@ def process_array(
     else:
         log.info('skipping input anti aliasing filter')
 
-    resampled = scipy_resample(y, INPUT_SR, SP_SR, RESAMPLE_MULTIPLIER)
+    resampled = scipy_resample(y, INPUT_SR, sp_sample_rate, RESAMPLE_MULTIPLIER)
 
     if quantize:
         # TODO: expose midrise option?
@@ -255,7 +257,7 @@ def process_array(
     #       check git history to see if there was a note about this
     output = librosa_resample(
                 np.asfortranarray(post_zero_order_hold),
-                orig_sr=SP_SR * ZOH_MULTIPLIER,
+                orig_sr=sp_sample_rate * ZOH_MULTIPLIER,
                 target_sr=OUTPUT_SR
             )
 
@@ -315,13 +317,14 @@ def pitch(
         output_filter_type=OUTPUT_FILTER_TYPES[0],
         moog_output_filter_cutoff=10000,
         force_mono=False,
-        input_data=None  # allows passing an array to avoid re-processing input for output_many.py
+        input_data=None,  # allows passing an array to avoid re-processing input for output_many.py
+        use_sp12_rate=False  # use SP-12 sample rate instead of SP-1200
     ):
 
     valid_levels = list(log_levels.keys())
     if (not log_level) or (log_level.upper() not in valid_levels):
-        log.warn(f'Invalid log-level: "{log_level}", log-level set to "INFO", '
-                 f'valid log levels are {valid_levels}')
+        log.warning(f'Invalid log-level: "{log_level}", log-level set to "INFO", '
+                    f'valid log levels are {valid_levels}')
         log_level = 'INFO'
 
     log_level = log_levels[log_level]
@@ -330,6 +333,10 @@ def pitch(
     if output_filter_type not in OUTPUT_FILTER_TYPES:
         log.error(f'invalid output_filter_type {output_filter_type}, valid values are {OUTPUT_FILTER_TYPES}')
         log.error(f'using output_filter_type {OUTPUT_FILTER_TYPES[0]}')
+
+    # Select sample rate based on parameter
+    sp_sample_rate = SP12_SR if use_sp12_rate else SP1200_SR
+    log.info(f'Using sample rate: {sp_sample_rate} Hz ({"SP-12" if use_sp12_rate else "SP-1200"} mode)')
 
     y = None
     if input_data is not None:
@@ -348,18 +355,18 @@ def pitch(
         log.info('processing channel 1')
         y1 = process_array(
             y1, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
-            custom_time_stretch, output_filter_type, moog_output_filter_cutoff
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, sp_sample_rate
         )
         log.info('processing channel 2')
         y2 = process_array(
             y2, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
-            custom_time_stretch, output_filter_type, moog_output_filter_cutoff
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, sp_sample_rate
         )
         y = np.hstack((y1.reshape(-1, 1), y2.reshape(-1,1)))
         write_audio(y, output_file_path, normalize_output)
     else:  # mono
         y = process_array(
             y, st, input_filter, quantize, time_stretch, output_filter, quantize_bits,
-            custom_time_stretch, output_filter_type, moog_output_filter_cutoff
+            custom_time_stretch, output_filter_type, moog_output_filter_cutoff, sp_sample_rate
         )
         write_audio(y, output_file_path, normalize_output)

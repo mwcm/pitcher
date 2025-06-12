@@ -49,6 +49,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
                                lp1 cutoff = 7.5kHz, lp2 cutoff = 10kHz, moog=10kHz
 --moog-output-filter-cutoff - set cutoff for moog SSM2044 approximation,             int,    default 10000
 --force-mono                - convert input to mono, ouput will also be mono,        flag,   default False
+--use-sp12-rate             - use SP-12 sample rate (27500 Hz) instead of SP-1200 (26040 Hz), flag, default False
 ```
 
 If you find this project useful, please consider donating to the [NAACP Legal Defense Fund](https://engage.naacpldf.org/dBCvDTd9IEiXX_jPkmkT_w2) or [BLM CA](https://www.blacklivesmatter.ca/)
