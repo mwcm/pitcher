@@ -12,7 +12,7 @@ from pitcher.core import pitch, OUTPUT_FILTER_TYPES
 @click.option('--input-filter',               is_flag=True, default=True)
 @click.option('--quantize',                   is_flag=True, default=True)
 @click.option('--time-stretch',               is_flag=True, default=True)
-@click.option('--output-filter',              is_flag=True, default=True)
+@click.option('--output-filter/--no-output-filter', default=True)
 @click.option('--normalize-output',           is_flag=True, default=False)
 @click.option('--quantize-bits',              type=int,     default=12, help='bit rate of quantized output')
 @click.option('--custom-time-stretch',        type=float,   default=1.0)
