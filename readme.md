@@ -35,7 +35,7 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
 
 ```
 --st                        - number of semitones to shift pitch by,                 int,    required
---input-file                - path to input audio file (WAV, MP3, OGG, FLAC),       string, required
+--input-file                - path to input audio file (WAV, MP3, OGG, FLAC),        string, required
 --output-file               - path to output audio file,                             string, required
 --log-level                 - logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL), string, default 'INFO'
 --input-filter              - apply input anti-aliasing filter,                      flag,   default True
@@ -48,11 +48,11 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
 --no-output-filter          - skip output EQ filtering
 --normalize-output          - normalize output audio,                                flag,   default False
 --quantize-bits             - bit depth for quantization simulation,                 int,    default 12
---custom-time-stretch       - custom time stretch factor (1.0=device default, 0.0=none), float, default 1.0
---output-filter-type        - output filter type: lp1 (7.5kHz cutoff), lp2 (10kHz cutoff), moog (SSM2044), str, default 'lp1'
+--custom-time-stretch       - time stretch factor (1.0=device default, 0.0=none),    float,  default 1.0
+--output-filter-type        - output filter: lp1 (7.5kHz), lp2 (10kHz), moog,        str,    default 'lp1'
 --moog-output-filter-cutoff - cutoff frequency for moog filter in Hz (20-20000),     int,    default 10000
 --force-mono                - convert input to mono (output will also be mono),      flag,   default False
---use-sp12-rate             - use SP-12 sample rate (27500 Hz) instead of SP-1200 (26040 Hz), flag, default False
+--use-sp12-rate             - use SP-12 SR (27500 Hz) instead of SP-1200 (26040 Hz), flag,   default False
 ```
 
 ### Usage Examples:
