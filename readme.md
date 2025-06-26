@@ -38,14 +38,10 @@ The [releases page](https://github.com/mwcm/pitcher/releases/tag/0.5.2) also has
 --input-file                - path to input audio file (WAV, MP3, OGG, FLAC),        string, required
 --output-file               - path to output audio file,                             string, required
 --log-level                 - logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL), string, default 'INFO'
---input-filter              - apply input anti-aliasing filter,                      flag,   default True
---no-input-filter           - skip input anti-aliasing filter
---quantize                  - apply ADC quantization simulation,                     flag,   default True
---no-quantize               - skip ADC quantization simulation
---time-stretch              - enable time stretching,                                flag,   default True
---no-time-stretch           - disable time stretching
---output-filter             - apply output EQ filtering,                             flag,   default True
---no-output-filter          - skip output EQ filtering
+--no-input-filter           - skip input anti-aliasing filter,                       flag,   default False
+--no-quantize               - skip ADC quantization simulation,                      flag,   default False
+--no-time-stretch           - disable time stretching,                               flag,   default False
+--no-output-filter          - skip output EQ filtering                               flag,   default False
 --normalize-output          - normalize output audio,                                flag,   default False
 --quantize-bits             - bit depth for quantization simulation,                 int,    default 12
 --custom-time-stretch       - time stretch factor (1.0=device default, 0.0=none),    float,  default 1.0
